@@ -4,7 +4,7 @@ import (
 	"log"
 	"time"
 
-	binance "./binance"
+	bnc "./binance"
 	indicators "./indicators"
 )
 
@@ -18,30 +18,32 @@ func main() {
 	}
 
 	// создание клиента
-	var client = binance.NewClient(config.API.Binance.Key, config.API.Binance.Secret)
+	client := bnc.NewClient(config.API.Binance.Key, config.API.Binance.Secret)
 
+	// refactor
+	var stopOrder int64
 	// бесконечный анализ валюты
 	for {
 		// получение истории торгов по валюте
-		candleHistory, err := binance.GetCandleHistory(client, "BTCUSDT", "1m")
+		candleHistory, err := client.GetCandleHistory("BTCUSDT", "1m")
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
-		closePrices, err := binance.ConvertCandleHistory(candleHistory, binance.Close)
+		// преобразование данных для StochRSI
+		closePrices, err := client.ConvertCandleHistory(candleHistory, bnc.Close)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
+		// получение данных индикатора StochRSI
 		k, d, err := indicators.StochRSI(closePrices, 14, 9, 3, 3)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
-
-		log.Println(k[len(k)-1], d[len(d)-1])
 
 		// последние две свечи
 		kCandleCurrent := k[len(k)-1]
@@ -55,13 +57,74 @@ func main() {
 			dCandleCurrent > 80 &&
 			kCandlePrev >= dCandlePrev &&
 			kCandleCurrent < dCandleCurrent {
-			log.Println("cell")
+
+			// продажа
+			openOrders, err := client.GetOpenOrders("BTCUSDT")
+			if err != nil {
+				log.Fatalln(err)
+			}
+			if len(openOrders) != 0 {
+				// отмена открытого STOP-LOSS (LIMIT) ордера
+				_, err := client.CancelOrder("BTCUSDT", stopOrder)
+				if err != nil {
+					log.Fatalln(err)
+				}
+
+				// получение доступного баланса для валюты
+				balance, err := client.GetBalance("BTC")
+				if err != nil {
+					log.Fatalln(err)
+				}
+
+				// продажа валюты
+				res, err := client.CreateMarketCellOrder("BTCUSDT", balance)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				log.Println("cell")
+				log.Println(res)
+			}
+
 		} else if kCandleCurrent < 20 &&
 			dCandleCurrent < 20 &&
 			kCandlePrev <= dCandlePrev &&
 			kCandleCurrent > dCandleCurrent {
-			log.Println("buy")
+
+			// покупка
+
+			// получение открытых ордеров
+			openOrders, err := client.GetOpenOrders("BTCUSDT")
+			if err != nil {
+				log.Fatalln(err)
+			}
+			if len(openOrders) == 0 {
+				// получение доступного баланса валюты для покупки
+				balance, err := client.GetBalance("USDT")
+				if err != nil {
+					log.Fatalln(err)
+				}
+				// получение текущей цены валюты
+				price, err := client.GetCurrentPrice("BTCUSDT")
+				if err != nil {
+					log.Fatalln(err)
+				}
+				// создание ордера для покупки
+				res, err := client.CreateMarketBuyOrder("BTCUSDT", balance/price*0.005)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				log.Println(res)
+				// установка STOP-LOSS (LIMIT) ордера
+				st, err := client.CreateLimitSellOrder("BTCUSDT", balance, price-(price*0.005))
+				if err != nil {
+					log.Fatalln(err)
+				}
+				log.Println(st)
+				stopOrder = st.OrderID
+				log.Println("buy")
+			}
 		}
+
 		time.Sleep(time.Second)
 	}
 

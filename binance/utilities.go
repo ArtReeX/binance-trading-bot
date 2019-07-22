@@ -16,7 +16,7 @@ const (
 )
 
 // ConvertCandleHistory - функция преобразования истории валюты
-func ConvertCandleHistory(history []*binance.Kline, typeOfReceiving TypeOfReceiving) ([]float64, error) {
+func (api *API) ConvertCandleHistory(history []*binance.Kline, typeOfReceiving TypeOfReceiving) ([]float64, error) {
 	switch typeOfReceiving {
 	case Close:
 		{
