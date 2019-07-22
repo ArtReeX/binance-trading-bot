@@ -65,19 +65,20 @@ func main() {
 			}
 			if len(openOrders) != 0 {
 				// отмена открытого STOP-LOSS (LIMIT) ордера
-				_, err := client.CancelOrder("BTCUSDT", stopOrder)
+				st, err := client.CancelOrder("BTCUSDT", stopOrder)
 				if err != nil {
 					log.Fatalln(err)
 				}
+				log.Println(st)
 
-				// получение доступного баланса для валюты
-				balance, err := client.GetBalance("BTC")
+				// получение доступного свободного баланса для валюты
+				balanceFree, err := client.GetBalanceFree("BTC")
 				if err != nil {
 					log.Fatalln(err)
 				}
 
 				// продажа валюты
-				res, err := client.CreateMarketCellOrder("BTCUSDT", balance)
+				res, err := client.CreateMarketCellOrder("BTCUSDT", balanceFree, 6)
 				if err != nil {
 					log.Fatalln(err)
 				}
@@ -98,8 +99,8 @@ func main() {
 				log.Fatalln(err)
 			}
 			if len(openOrders) == 0 {
-				// получение доступного баланса валюты для покупки
-				balance, err := client.GetBalance("USDT")
+				// получение доступного свободного баланса валюты для покупки
+				balanceFree, err := client.GetBalanceFree("USDT")
 				if err != nil {
 					log.Fatalln(err)
 				}
@@ -108,14 +109,20 @@ func main() {
 				if err != nil {
 					log.Fatalln(err)
 				}
+
 				// создание ордера для покупки
-				res, err := client.CreateMarketBuyOrder("BTCUSDT", balance/price*0.005)
+				res, err := client.CreateMarketBuyOrder("BTCUSDT", (balanceFree/price)*0.1, 6)
 				if err != nil {
 					log.Fatalln(err)
 				}
 				log.Println(res)
+				// получение доступного заблокированного баланса купленной валюты
+				balanceLock, err := client.GetBalanceLocked("BTC")
+				if err != nil {
+					log.Fatalln(err)
+				}
 				// установка STOP-LOSS (LIMIT) ордера
-				st, err := client.CreateLimitSellOrder("BTCUSDT", balance, price-(price*0.005))
+				st, err := client.CreateLimitSellOrder("BTCUSDT", balanceLock, price-(price*0.001), 6, 2)
 				if err != nil {
 					log.Fatalln(err)
 				}
