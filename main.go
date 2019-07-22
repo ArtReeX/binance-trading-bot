@@ -20,7 +20,7 @@ func main() {
 	// создание клиента
 	var client = binance.NewClient(config.API.Binance.Key, config.API.Binance.Secret)
 
-	// trash
+	// бесконечный анализ валюты
 	for {
 		// получение истории торгов по валюте
 		candleHistory, err := binance.GetCandleHistory(client, "BTCUSDT", "1m")
@@ -53,12 +53,12 @@ func main() {
 		// если произошло пересечение быстрой прямой долгую сверху вниз в зоне перекупленности то выполняем продажу
 		if kCandleCurrent > 80 &&
 			dCandleCurrent > 80 &&
-			kCandlePrev > dCandlePrev &&
+			kCandlePrev >= dCandlePrev &&
 			kCandleCurrent < dCandleCurrent {
 			log.Println("cell")
 		} else if kCandleCurrent < 20 &&
 			dCandleCurrent < 20 &&
-			kCandlePrev < dCandlePrev &&
+			kCandlePrev <= dCandlePrev &&
 			kCandleCurrent > dCandleCurrent {
 			log.Println("buy")
 		}
