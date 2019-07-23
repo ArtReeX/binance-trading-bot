@@ -2,11 +2,18 @@ package main
 
 import (
 	"log"
+	"strconv"
 	"time"
 
 	bnc "./binance"
 	indicators "./indicators"
 )
+
+// Order -  структура ордера
+type Order struct {
+	Pair string
+	ID   int64
+}
 
 func main() {
 	log.Println("Запуск бота для торговли на Binance.")
@@ -20,8 +27,9 @@ func main() {
 	// создание клиента
 	client := bnc.NewClient(config.API.Binance.Key, config.API.Binance.Secret)
 
-	// refactor
-	var stopOrder int64
+	// идентификаторы ордеров
+	var ordersWithoutStopLoss, stopLossOrders []Order
+
 	// бесконечный анализ валюты
 	for {
 		// получение истории торгов по валюте
@@ -51,6 +59,62 @@ func main() {
 		dCandleCurrent := d[len(d)-1]
 		dCandlePrev := d[len(d)-2]
 
+		// открытие STOP-LOSS ордеров на завершённые сделки
+		for index, order := range ordersWithoutStopLoss {
+
+			// получение статуса ордера
+			order, err := client.GetOrder(order.Pair, order.ID)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			// установка STOP-LOSS ордера в случае если обычный ордер был исполнен
+			if order.Status == "FILLED" {
+				// получение количества купленной валюты
+				quantity, err := strconv.ParseFloat(order.OrigQuantity, 64)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				// получение цены купленной валюты
+				price, err := strconv.ParseFloat(order.Price, 64)
+				if err != nil {
+					log.Fatalln(err)
+				}
+				// установка STOP-LOSS ордера
+				stopOrder, err := client.CreateLimitSellOrder("BTCUSDT", quantity, price-(price*0.001), 6, 2)
+				if err != nil {
+					log.Fatalln(err)
+
+				}
+
+				log.Println("Открыт STOP-LOSS ордер на продажу по цене", stopOrder.Price)
+
+				// добавление ордера в открытые стоп-ордера
+				stopLossOrders = append(stopLossOrders, Order{Pair: stopOrder.Symbol, ID: stopOrder.OrderID})
+				// удаление текущего исполненного ордера
+				copy(ordersWithoutStopLoss[index:], ordersWithoutStopLoss[index+1:])
+				ordersWithoutStopLoss = ordersWithoutStopLoss[:len(ordersWithoutStopLoss)-1]
+			}
+		}
+
+		// удаление исполненных STOP-LOSS ордеров
+		for index, order := range stopLossOrders {
+
+			// получение статуса ордера
+			order, err := client.GetOrder(order.Pair, order.ID)
+			if err != nil {
+				log.Fatalln(err)
+			}
+
+			if order.Status == "FILLED" {
+				// удаление текущего исполненного ордера
+				copy(stopLossOrders[index:], stopLossOrders[index+1:])
+				stopLossOrders = stopLossOrders[:len(stopLossOrders)-1]
+
+				log.Println("Удалён исполненный STOP-LOSS ордер по цене", order.Price)
+			}
+		}
+
 		// если произошло пересечение быстрой прямой долгую снизу вверх в зоне перепроданности то выполняем покупку
 		// если произошло пересечение быстрой прямой долгую сверху вниз в зоне перекупленности то выполняем продажу
 		if kCandleCurrent > 80 &&
@@ -58,18 +122,19 @@ func main() {
 			kCandlePrev >= dCandlePrev &&
 			kCandleCurrent < dCandleCurrent {
 
-			// продажа
-			openOrders, err := client.GetOpenOrders("BTCUSDT")
-			if err != nil {
-				log.Fatalln(err)
-			}
-			if len(openOrders) != 0 {
-				// отмена открытого STOP-LOSS (LIMIT) ордера
-				st, err := client.CancelOrder("BTCUSDT", stopOrder)
-				if err != nil {
-					log.Fatalln(err)
+			// продажа валюты
+			if len(stopLossOrders) != 0 {
+
+				// отмена открытых STOP-LOSS ордеров
+				for index, order := range stopLossOrders {
+					_, err := client.CancelOrder(order.Pair, order.ID)
+					if err != nil {
+						log.Fatalln(err)
+					}
+					// удаление из массива STOP-LOSS ордеров
+					copy(stopLossOrders[index:], stopLossOrders[index+1:])
+					stopLossOrders = stopLossOrders[:len(stopLossOrders)-1]
 				}
-				log.Println(st)
 
 				// получение доступного свободного баланса для валюты
 				balanceFree, err := client.GetBalanceFree("BTC")
@@ -77,13 +142,13 @@ func main() {
 					log.Fatalln(err)
 				}
 
-				// продажа валюты
-				res, err := client.CreateMarketCellOrder("BTCUSDT", balanceFree, 6)
+				// открытие ордера на продажу
+				order, err := client.CreateMarketCellOrder("BTCUSDT", balanceFree, 6)
 				if err != nil {
 					log.Fatalln(err)
 				}
-				log.Println("cell")
-				log.Println(res)
+
+				log.Println("Открыт ордер на продажу по цене", order.Price)
 			}
 
 		} else if kCandleCurrent < 20 &&
@@ -91,14 +156,8 @@ func main() {
 			kCandlePrev <= dCandlePrev &&
 			kCandleCurrent > dCandleCurrent {
 
-			// покупка
-
-			// получение открытых ордеров
-			openOrders, err := client.GetOpenOrders("BTCUSDT")
-			if err != nil {
-				log.Fatalln(err)
-			}
-			if len(openOrders) == 0 {
+			// покупка валюты
+			if len(stopLossOrders) == 0 {
 				// получение доступного свободного баланса валюты для покупки
 				balanceFree, err := client.GetBalanceFree("USDT")
 				if err != nil {
@@ -109,26 +168,14 @@ func main() {
 				if err != nil {
 					log.Fatalln(err)
 				}
-
 				// создание ордера для покупки
-				res, err := client.CreateMarketBuyOrder("BTCUSDT", (balanceFree/price)*0.1, 6)
+				order, err := client.CreateMarketBuyOrder("BTCUSDT", (balanceFree/price)*0.1, 6)
 				if err != nil {
 					log.Fatalln(err)
 				}
-				log.Println(res)
-				// получение доступного заблокированного баланса купленной валюты
-				balanceLock, err := client.GetBalanceLocked("BTC")
-				if err != nil {
-					log.Fatalln(err)
-				}
-				// установка STOP-LOSS (LIMIT) ордера
-				st, err := client.CreateLimitSellOrder("BTCUSDT", balanceLock, price-(price*0.001), 6, 2)
-				if err != nil {
-					log.Fatalln(err)
-				}
-				log.Println(st)
-				stopOrder = st.OrderID
-				log.Println("buy")
+				ordersWithoutStopLoss = append(ordersWithoutStopLoss, Order{Pair: order.Symbol, ID: order.OrderID})
+
+				log.Println("Открыт ордер на покупку по цене", order.Price)
 			}
 		}
 

@@ -142,6 +142,15 @@ func (api *API) GetOpenOrders(pair string) ([]*binance.Order, error) {
 	return openOrders, nil
 }
 
+// GetOrder - функция получения ордера
+func (api *API) GetOrder(pair string, id int64) (*binance.Order, error) {
+	order, err := api.client.NewGetOrderService().Symbol(pair).OrderID(id).Do(context.Background())
+	if err != nil {
+		return nil, errors.New("не удалось получить ордер: " + err.Error())
+	}
+	return order, nil
+}
+
 // CancelOrder - функция отмены ордера
 func (api *API) CancelOrder(pair string, id int64) (*binance.CancelOrderResponse, error) {
 	res, err := api.client.NewCancelOrderService().Symbol(pair).OrderID(id).Do(context.Background())
