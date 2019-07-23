@@ -168,6 +168,8 @@ func (api *API) CreateMarketCellOrder(pair string, quantity float64, accuracyQua
 		Side(binance.SideTypeSell).
 		Type(binance.OrderTypeMarket).
 		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
+		TimeInForce(binance.TimeInForceGTC).
+		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 
 	if err != nil {
@@ -183,6 +185,8 @@ func (api *API) CreateMarketBuyOrder(pair string, quantity float64, accuracyQuan
 		Side(binance.SideTypeBuy).
 		Type(binance.OrderTypeMarket).
 		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
+		TimeInForce(binance.TimeInForceGTC).
+		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 
 	if err != nil {
@@ -204,6 +208,7 @@ func (api *API) CreateLimitSellOrder(pair string,
 		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
 		Price(strconv.FormatFloat(price, 'f', int(accuracyPrice), 64)).
 		TimeInForce(binance.TimeInForceGTC).
+		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 
 	if err != nil {
@@ -225,6 +230,7 @@ func (api *API) CreateLimitBuyOrder(
 		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
 		Price(strconv.FormatFloat(price, 'f', int(accuracyPrice), 64)).
 		TimeInForce(binance.TimeInForceGTC).
+		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 
 	if err != nil {

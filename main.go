@@ -9,12 +9,6 @@ import (
 	indicators "./indicators"
 )
 
-// Order -  структура ордера
-type Order struct {
-	Pair string
-	ID   int64
-}
-
 func main() {
 	log.Println("Запуск бота для торговли на Binance.")
 
@@ -28,10 +22,11 @@ func main() {
 	client := bnc.NewClient(config.API.Binance.Key, config.API.Binance.Secret)
 
 	// идентификаторы ордеров
-	var ordersWithoutStopLoss, stopLossOrders []Order
+	var ordersWithoutStopLoss, stopLossOrders = make(map[string][]int64), make(map[string][]int64)
 
 	// бесконечный анализ валюты
 	for {
+
 		// получение истории торгов по валюте
 		candleHistory, err := client.GetCandleHistory("BTCUSDT", "1m")
 		if err != nil {
@@ -60,10 +55,10 @@ func main() {
 		dCandlePrev := d[len(d)-2]
 
 		// открытие STOP-LOSS ордеров на завершённые сделки
-		for index, order := range ordersWithoutStopLoss {
+		for index, id := range ordersWithoutStopLoss["BTCUSDT"] {
 
 			// получение статуса ордера
-			order, err := client.GetOrder(order.Pair, order.ID)
+			order, err := client.GetOrder("BTCUSDT", id)
 			if err != nil {
 				log.Fatalln(err)
 			}
@@ -90,26 +85,26 @@ func main() {
 				log.Println("Открыт STOP-LOSS ордер на продажу по цене", stopOrder.Price)
 
 				// добавление ордера в открытые стоп-ордера
-				stopLossOrders = append(stopLossOrders, Order{Pair: stopOrder.Symbol, ID: stopOrder.OrderID})
+				stopLossOrders["BTCUSDT"] = append(stopLossOrders["BTCUSDT"], stopOrder.OrderID)
 				// удаление текущего исполненного ордера
-				copy(ordersWithoutStopLoss[index:], ordersWithoutStopLoss[index+1:])
-				ordersWithoutStopLoss = ordersWithoutStopLoss[:len(ordersWithoutStopLoss)-1]
+				copy(ordersWithoutStopLoss["BTCUSDT"][index:], ordersWithoutStopLoss["BTCUSDT"][index+1:])
+				ordersWithoutStopLoss["BTCUSDT"] = ordersWithoutStopLoss["BTCUSDT"][:len(ordersWithoutStopLoss["BTCUSDT"])-1]
 			}
 		}
 
 		// удаление исполненных STOP-LOSS ордеров
-		for index, order := range stopLossOrders {
+		for index, id := range stopLossOrders["BTCUSDT"] {
 
 			// получение статуса ордера
-			order, err := client.GetOrder(order.Pair, order.ID)
+			order, err := client.GetOrder("BTCUSDT", id)
 			if err != nil {
 				log.Fatalln(err)
 			}
 
 			if order.Status == "FILLED" {
 				// удаление текущего исполненного ордера
-				copy(stopLossOrders[index:], stopLossOrders[index+1:])
-				stopLossOrders = stopLossOrders[:len(stopLossOrders)-1]
+				copy(stopLossOrders["BTCUSDT"][index:], stopLossOrders["BTCUSDT"][index+1:])
+				stopLossOrders["BTCUSDT"] = stopLossOrders["BTCUSDT"][:len(stopLossOrders["BTCUSDT"])-1]
 
 				log.Println("Удалён исполненный STOP-LOSS ордер по цене", order.Price)
 			}
@@ -123,17 +118,17 @@ func main() {
 			kCandleCurrent < dCandleCurrent {
 
 			// продажа валюты
-			if len(stopLossOrders) != 0 {
+			if len(stopLossOrders["BTCUSDT"]) != 0 {
 
 				// отмена открытых STOP-LOSS ордеров
-				for index, order := range stopLossOrders {
-					_, err := client.CancelOrder(order.Pair, order.ID)
+				for index, id := range stopLossOrders["BTCUSDT"] {
+					_, err := client.CancelOrder("BTCUSDT", id)
 					if err != nil {
 						log.Fatalln(err)
 					}
 					// удаление из массива STOP-LOSS ордеров
-					copy(stopLossOrders[index:], stopLossOrders[index+1:])
-					stopLossOrders = stopLossOrders[:len(stopLossOrders)-1]
+					copy(stopLossOrders["BTCUSDT"][index:], stopLossOrders["BTCUSDT"][index+1:])
+					stopLossOrders["BTCUSDT"] = stopLossOrders["BTCUSDT"][:len(stopLossOrders["BTCUSDT"])-1]
 				}
 
 				// получение доступного свободного баланса для валюты
@@ -173,7 +168,7 @@ func main() {
 				if err != nil {
 					log.Fatalln(err)
 				}
-				ordersWithoutStopLoss = append(ordersWithoutStopLoss, Order{Pair: order.Symbol, ID: order.OrderID})
+				ordersWithoutStopLoss["BTCUSDT"] = append(ordersWithoutStopLoss["BTCUSDT"], order.OrderID)
 
 				log.Println("Открыт ордер на покупку по цене", order.Price)
 			}
