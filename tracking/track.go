@@ -4,27 +4,16 @@ import (
 	"log"
 	"sync"
 
+	"github.com/adshao/go-binance"
+
 	bnc "../binance"
 )
 
 // OrderInfo - параметры ордера для текущего направления
 type OrderInfo struct {
-	sync.Mutex
-	NotBackedID int64
-	StopLossID  int64
-	Price       float64
-	Quantity    float64
+	LastBuyOrder  *binance.Order
+	StopLossOrder *binance.Order
 }
-
-// TypeOrder -  тип оредера (ПОКУПКА/ПРОДАЖА)
-type TypeOrder string
-
-const (
-	// TypeOrderBuy -  ордер на покупку
-	TypeOrderBuy TypeOrder = "BUY"
-	// TypeOrderSell - ордер на продажу
-	TypeOrderSell TypeOrder = "SELL"
-)
 
 // DirectionTracking - поток отслеживания направления
 func DirectionTracking(base string,
@@ -38,36 +27,31 @@ func DirectionTracking(base string,
 	defer waitGroupDirectionTracking.Done()
 
 	// создание параметров ордера для текущего направления
-	orderInfo := OrderInfo{Price: 0, Quantity: 0, NotBackedID: -1, StopLossID: -1}
+	orderInfo := &OrderInfo{}
 
-	// запуск слежения за STOP-LOSS ордерами
-	waitGroupCheckStopLossOrders := new(sync.WaitGroup)
-	waitGroupCheckStopLossOrders.Add(1)
-	go checkStopLossOrders(base+quote, &orderInfo, client, waitGroupCheckStopLossOrders)
-
-	// запуск слежения за неподкреплёнными (без STOP-LOSS) ордерами
-	waitGroupCreateStopLossOrders := new(sync.WaitGroup)
-	waitGroupCreateStopLossOrders.Add(1)
-	go createStopLossOrders(base+quote,
-		&orderInfo,
-		accuracyQuantity,
-		accuracyPrice,
-		client,
-		waitGroupCreateStopLossOrders)
+	// запуск слежения за откурытыми и STOP-LOSS ордерами
+	waitGroupUpdateOrderStatus := new(sync.WaitGroup)
+	waitGroupUpdateOrderStatus.Add(2)
+	go updateOrderStatus(orderInfo.LastBuyOrder, client, waitGroupUpdateOrderStatus)
+	go updateOrderStatus(orderInfo.StopLossOrder, client, waitGroupUpdateOrderStatus)
 
 	// запуск отслеживания индикаторами
-	action := make(chan TypeOrder)
+	action := make(chan binance.SideType)
 	go trackStochRSI(base+quote, interval, action, client)
 	log.Println("Запущено отслеживание по направлению", base+quote, "с периодом", interval)
 
 	// определение необходимого действия
 	for {
 		switch <-action {
-		case TypeOrderBuy:
+		case binance.SideTypeBuy:
 			{
-				if orderInfo.StopLossID == -1 && orderInfo.NotBackedID == -1 {
+				if (orderInfo.StopLossOrder == nil && orderInfo.LastBuyOrder == nil) ||
+					(orderInfo.LastBuyOrder != nil &&
+						orderInfo.LastBuyOrder.Status == "EXPIRED") ||
+					(orderInfo.StopLossOrder != nil &&
+						orderInfo.StopLossOrder.Status == "FILLED") {
 					// создание ордера на покупку
-					orderID, err := createBuyOrder(base,
+					openOrder, err := createBuyOrder(base,
 						quote,
 						accuracyQuantity,
 						accuracyPrice,
@@ -76,27 +60,46 @@ func DirectionTracking(base string,
 						log.Println(err)
 						continue
 					}
-					orderInfo.NotBackedID = orderID
+					orderInfo.LastBuyOrder = openOrder
 				}
 			}
-		case TypeOrderSell:
+		case binance.SideTypeSell:
 			{
-				if orderInfo.StopLossID != -1 || orderInfo.NotBackedID != -1 {
-					// отмена STOP-LOSS ордера
-					err := cancelStopLossOrder(base+quote, orderInfo.StopLossID, client)
+				if orderInfo.StopLossOrder != nil && orderInfo.LastBuyOrder != nil &&
+					orderInfo.StopLossOrder.Status != "FILLED" && orderInfo.StopLossOrder.Status != "CANCELED" {
+					// получение текущей цены валюты
+					currentPrice, err := client.GetCurrentPrice(orderInfo.LastBuyOrder.Price)
 					if err != nil {
 						log.Println(err)
 						continue
 					}
-					// создание ордера на продажу
-					_, err = createSellOrder(base,
-						quote,
-						orderInfo.Quantity,
-						accuracyQuantity,
-						accuracyPrice,
-						client)
+
+					// получение цены по которой покупалась валюты
+					purchasePrice, err := client.GetCurrentPrice(orderInfo.LastBuyOrder.Price)
 					if err != nil {
 						log.Println(err)
+						continue
+					}
+
+					// проверка условий продажи
+					if currentPrice > purchasePrice {
+						// отмена STOP-LOSS ордера
+						err := cancelStopLossOrder(orderInfo.StopLossOrder, client)
+						if err != nil {
+							log.Println(err)
+							continue
+						}
+						orderInfo.StopLossOrder = nil
+						// создание ордера на продажу
+						_, err = createSellOrder(orderInfo.LastBuyOrder,
+							accuracyQuantity,
+							accuracyPrice,
+							client)
+						if err != nil {
+							log.Println(err)
+							continue
+						}
+						orderInfo.LastBuyOrder = nil
 					}
 				}
 			}

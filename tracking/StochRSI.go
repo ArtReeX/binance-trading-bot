@@ -4,12 +4,14 @@ import (
 	"log"
 	"time"
 
+	"github.com/adshao/go-binance"
+
 	bnc "../binance"
 	indicators "../indicators"
 )
 
 // trackStochRSI индикатор покупки либо продажи валюты
-func trackStochRSI(pair string, interval string, action chan<- TypeOrder, client *bnc.API) {
+func trackStochRSI(pair string, interval string, action chan<- binance.SideType, client *bnc.API) {
 	for {
 		// получение истории торгов по валюте
 		candleHistory, err := client.GetCandleHistory(pair, interval)
@@ -43,7 +45,7 @@ func trackStochRSI(pair string, interval string, action chan<- TypeOrder, client
 
 			// если произошло пересечение быстрой прямой долгую снизу вверх в зоне перепроданности то выполняем покупку
 			if kCandlePrev <= dCandlePrev && kCandleCurrent > dCandleCurrent {
-				action <- TypeOrderBuy
+				action <- binance.SideTypeBuy
 			}
 			// если мы в нейтральной зоне уменьшаем частоту проверок
 			time.Sleep(time.Second)
@@ -54,7 +56,7 @@ func trackStochRSI(pair string, interval string, action chan<- TypeOrder, client
 
 			// если произошло пересечение быстрой прямой долгую сверху вниз в зоне перекупленности то выполняем продажу
 			if kCandlePrev >= dCandlePrev && kCandleCurrent < dCandleCurrent {
-				action <- TypeOrderSell
+				action <- binance.SideTypeSell
 			}
 			// если мы в нейтральной зоне уменьшаем частоту проверок
 			time.Sleep(time.Second)
