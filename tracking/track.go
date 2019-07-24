@@ -32,10 +32,10 @@ func DirectionTracking(direction Direction,
 	// создание параметров ордера для текущего направления
 	orderInfo := &OrderInfo{}
 
-	// запуск обновления статусов ордеров
+	// запуск обновления статуса ордеров
 	go updateOrderStatus([]*binance.Order{orderInfo.BuyOrder, orderInfo.StopLossOrder}, client)
 
-	// запуск слежения за STOP-LOSS ордером
+	// запуск слежения за открытым ордером на покупку для установки STOP-LOSS ордера
 	go checkBuyOrder(orderInfo.BuyOrder, orderInfo.StopLossOrder, client)
 
 	// запуск отслеживания индикаторами
