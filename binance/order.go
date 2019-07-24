@@ -28,11 +28,11 @@ func (api *API) GetOrder(pair string, id int64) (*binance.Order, error) {
 
 // CancelOrder - функция отмены ордера
 func (api *API) CancelOrder(pair string, id int64) (*binance.CancelOrderResponse, error) {
-	res, err := api.client.NewCancelOrderService().Symbol(pair).OrderID(id).Do(context.Background())
+	order, err := api.client.NewCancelOrderService().Symbol(pair).OrderID(id).Do(context.Background())
 	if err != nil {
 		return nil, errors.New("Не удалось отменить ордер: " + err.Error())
 	}
-	return res, nil
+	return order, nil
 }
 
 // CreateMarketSellOrder - функция создания MARKET ордера на продажу

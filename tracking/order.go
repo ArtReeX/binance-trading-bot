@@ -38,7 +38,7 @@ func createBuyOrder(base string,
 		return 0, err
 	}
 
-	log.Println("Создан ордер на продажу с направлением", order.Symbol,
+	log.Println("Создан ордер на покупку с направлением", order.Symbol,
 		"по цене", order.Price, "и количеством", order.OrigQuantity)
 
 	return order.OrderID, nil
@@ -47,15 +47,10 @@ func createBuyOrder(base string,
 // createSellOrder - функция создания ордера на продажу
 func createSellOrder(base string,
 	quote string,
+	quantity float64,
 	accuracyQuantity uint8,
 	accuracyPrice uint8,
 	client *bnc.API) (int64, error) {
-
-	// получение доступного баланса для покупки валюты
-	balance, err := client.GetBalanceFree(quote)
-	if err != nil {
-		return 0, err
-	}
 
 	// получение текущей цены валюты
 	currentPrice, err := client.GetCurrentPrice(base + quote)
@@ -63,9 +58,9 @@ func createSellOrder(base string,
 		return 0, err
 	}
 
-	// создание ордера на покупку
+	// создание ордера на продажу
 	order, err := client.CreateLimitSellOrder(base+quote,
-		balance/currentPrice*0.10,
+		quantity,
 		currentPrice,
 		accuracyQuantity,
 		accuracyPrice)
@@ -81,8 +76,7 @@ func createSellOrder(base string,
 
 // createStopLossOrders -  проверяет выполненность существующих ордеров на покупку и создаёт для них STOP-LOSS ордер
 func createStopLossOrders(pair string,
-	notBackedOrdersID []int64,
-	stopLossOrdersID []int64,
+	orderInfo *OrderInfo,
 	accuracyQuantity uint8,
 	accuracyPrice uint8,
 	client *bnc.API,
@@ -90,10 +84,10 @@ func createStopLossOrders(pair string,
 	defer waitGroupCreateStopLossOrders.Done()
 
 	for {
-		// проверка статуса исполнености ордера
-		for index, id := range notBackedOrdersID {
+		// проверка статуса исполненности ордера
+		if orderInfo.NotBackedID != -1 {
 			// получение ордера
-			order, err := client.GetOrder(pair, id)
+			order, err := client.GetOrder(pair, orderInfo.NotBackedID)
 			if err != nil {
 				log.Println(err)
 				continue
@@ -123,39 +117,39 @@ func createStopLossOrders(pair string,
 					continue
 				}
 
-				// удаление индикатора из списка наблюдения
-				copy(notBackedOrdersID[index:], notBackedOrdersID[index+1:])
-				notBackedOrdersID = notBackedOrdersID[:len(notBackedOrdersID)-1]
-
-				// добавление идентификатора STOP-LOSS ордера
-				stopLossOrdersID = append(stopLossOrdersID, stopLossOrder.OrderID)
+				// удаление индикатора из списка наблюдения и добавление идентификатора STOP-LOSS ордера
+				orderInfo.Lock()
+				orderInfo.NotBackedID = -1
+				orderInfo.StopLossID = stopLossOrder.OrderID
+				orderInfo.Quantity = quantity
+				orderInfo.Price = price
+				orderInfo.Unlock()
 
 				log.Println("Удалён выполненный ордер из списка наблюдения с направлением",
-					order.Symbol, "по цене", price, "и количеством", quantity)
-				log.Println("Добавлен STOP-LOSS ордер в список наблюдения с направлением",
 					order.Symbol, "по цене", order.Price, "и количеством", order.ExecutedQuantity)
+				log.Println("Добавлен STOP-LOSS ордер в список наблюдения с направлением",
+					stopLossOrder.Symbol, "по цене", stopLossOrder.Price, "и количеством", stopLossOrder.OrigQuantity)
 
 			} else if order.Status == "EXPIRED" || order.Status == "REJECTED" || order.Status == "CANCELED" {
 				// удаление индикатора из списка наблюдения
-				copy(notBackedOrdersID[index:], notBackedOrdersID[index+1:])
-				notBackedOrdersID = notBackedOrdersID[:len(notBackedOrdersID)-1]
+				orderInfo.NotBackedID = -1
 
 				log.Println("Удалён не выполненный ордер из списка наблюдения с направлением",
 					order.Symbol, "по цене", order.Price, "и количеством", order.OrigQuantity)
 			}
-			time.Sleep(time.Second * 1)
 		}
+		time.Sleep(time.Second * 1)
 	}
 }
 
-// checkStopLossOrders - функция проверяет статус STOP-LOSS ордеров
-func checkStopLossOrders(pair string, stopLossOrdersID []int64, client *bnc.API, waitGroupCheckStopLossOrders *sync.WaitGroup) {
+// checkStopLossOrders - функция проверяет статус STOP-LOSS ордера
+func checkStopLossOrders(pair string, orderInfo *OrderInfo, client *bnc.API, waitGroupCheckStopLossOrders *sync.WaitGroup) {
 	defer waitGroupCheckStopLossOrders.Done()
 	for {
-		// проверка статуса исполнености ордера
-		for index, id := range stopLossOrdersID {
+		// проверка статуса исполненности ордера
+		if orderInfo.StopLossID != -1 {
 			// получение ордера
-			order, err := client.GetOrder(pair, id)
+			order, err := client.GetOrder(pair, orderInfo.StopLossID)
 			if err != nil {
 				log.Println(err)
 				continue
@@ -163,13 +157,37 @@ func checkStopLossOrders(pair string, stopLossOrdersID []int64, client *bnc.API,
 
 			// удаление текущего отсутствующего ордера
 			if order.Status != "NEW" && order.Status != "PARTIALLY_FILLED" {
-				copy(stopLossOrdersID[index:], stopLossOrdersID[index+1:])
-				stopLossOrdersID = stopLossOrdersID[:len(stopLossOrdersID)-1]
+				orderInfo.Lock()
+				orderInfo.StopLossID = -1
+				orderInfo.Unlock()
 
 				log.Println("Удалён отсутствующий STOP-LOSS ордер из списка наблюдения с направлением",
 					order.Symbol, "по цене", order.Price, "и количеством", order.OrigQuantity)
 			}
 		}
+
 		time.Sleep(time.Second * 1)
 	}
+}
+
+// cancelStopLossOrder - функция отмены STOP-LOSS ордера
+func cancelStopLossOrder(pair string, id int64, client *bnc.API) error {
+	cancelOrder, err := client.CancelOrder(pair, id)
+	if err != nil {
+		return err
+	}
+	// получение идентификатора оригинального ордера
+	originalOrderID, err := strconv.ParseInt(cancelOrder.OrigClientOrderID, 10, 64)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	// получение оригинального ордера
+	originalOrder, err := client.GetOrder(cancelOrder.Symbol, originalOrderID)
+	if err != nil {
+		log.Println(err)
+	}
+	log.Println("Удалён не выполненный ордер из списка наблюдения с направлением",
+		originalOrder.Symbol, "по цене", originalOrder.Price, "и количеством", originalOrder.OrigQuantity)
+
+	return nil
 }
