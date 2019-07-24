@@ -36,15 +36,13 @@ func (api *API) CancelOrder(pair string, id int64) (*binance.CancelOrderResponse
 }
 
 // CreateMarketSellOrder - функция создания MARKET ордера на продажу
-func (api *API) CreateMarketSellOrder(pair string,
-	quantity float64,
-	accuracyQuantity uint8) (*binance.CreateOrderResponse, error) {
+func (api *API) CreateMarketSellOrder(pair string, quantity float64) (*binance.CreateOrderResponse, error) {
 
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeSell).
 		Type(binance.OrderTypeMarket).
-		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
+		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 
@@ -55,15 +53,13 @@ func (api *API) CreateMarketSellOrder(pair string,
 }
 
 // CreateMarketBuyOrder - функция создания MARKET ордера на покупку
-func (api *API) CreateMarketBuyOrder(pair string,
-	quantity float64,
-	accuracyQuantity uint8) (*binance.CreateOrderResponse, error) {
+func (api *API) CreateMarketBuyOrder(pair string, quantity float64) (*binance.CreateOrderResponse, error) {
 
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeBuy).
 		Type(binance.OrderTypeMarket).
-		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
+		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 
@@ -77,16 +73,14 @@ func (api *API) CreateMarketBuyOrder(pair string,
 func (api *API) CreateStopLimitSellOrder(pair string,
 	quantity float64,
 	price float64,
-	stopPrice float64,
-	accuracyQuantity uint8,
-	accuracyPrice uint8) (*binance.CreateOrderResponse, error) {
+	stopPrice float64) (*binance.CreateOrderResponse, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeSell).
 		Type(binance.OrderTypeStopLossLimit).
-		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
-		Price(strconv.FormatFloat(price, 'f', int(accuracyPrice), 64)).
-		StopPrice(strconv.FormatFloat(price, 'f', int(accuracyPrice), 64)).
+		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
+		Price(strconv.FormatFloat(price, 'f', 2, 64)).
+		StopPrice(strconv.FormatFloat(price, 'f', 2, 64)).
 		TimeInForce(binance.TimeInForceGTC).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
@@ -101,16 +95,14 @@ func (api *API) CreateStopLimitBuyOrder(
 	pair string,
 	quantity float64,
 	price float64,
-	stopPrice float64,
-	accuracyQuantity uint8,
-	accuracyPrice uint8) (*binance.CreateOrderResponse, error) {
+	stopPrice float64) (*binance.CreateOrderResponse, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeBuy).
 		Type(binance.OrderTypeLimit).
-		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
-		Price(strconv.FormatFloat(price, 'f', int(accuracyPrice), 64)).
-		StopPrice(strconv.FormatFloat(price, 'f', int(accuracyPrice), 64)).
+		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
+		Price(strconv.FormatFloat(price, 'f', 2, 64)).
+		StopPrice(strconv.FormatFloat(price, 'f', 2, 64)).
 		TimeInForce(binance.TimeInForceGTC).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
@@ -124,15 +116,13 @@ func (api *API) CreateStopLimitBuyOrder(
 func (api *API) CreateLimitSellOrder(
 	pair string,
 	quantity float64,
-	price float64,
-	accuracyQuantity uint8,
-	accuracyPrice uint8) (*binance.CreateOrderResponse, error) {
+	price float64) (*binance.CreateOrderResponse, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeSell).
 		Type(binance.OrderTypeLimit).
-		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
-		Price(strconv.FormatFloat(price, 'f', int(accuracyPrice), 64)).
+		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
+		Price(strconv.FormatFloat(price, 'f', 2, 64)).
 		TimeInForce(binance.TimeInForceGTC).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
@@ -146,15 +136,13 @@ func (api *API) CreateLimitSellOrder(
 func (api *API) CreateLimitBuyOrder(
 	pair string,
 	quantity float64,
-	price float64,
-	accuracyQuantity uint8,
-	accuracyPrice uint8) (*binance.CreateOrderResponse, error) {
+	price float64) (*binance.CreateOrderResponse, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeBuy).
 		Type(binance.OrderTypeLimit).
-		Quantity(strconv.FormatFloat(quantity, 'f', int(accuracyQuantity), 64)).
-		Price(strconv.FormatFloat(price, 'f', int(accuracyPrice), 64)).
+		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
+		Price(strconv.FormatFloat(price, 'f', 2, 64)).
 		TimeInForce(binance.TimeInForceIOC).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())

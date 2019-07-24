@@ -25,11 +25,10 @@ func main() {
 	for _, direction := range config.Directions {
 		for _, interval := range direction.Intervals {
 			waitGroupDirectionTracking.Add(1)
-			go tracking.DirectionTracking(direction.Base,
-				direction.Quote,
-				direction.AccuracyQuantity,
-				direction.AccuracyPrice,
-				interval,
+			go tracking.DirectionTracking(tracking.Direction{
+				Base:     direction.Base,
+				Quote:    direction.Quote,
+				Interval: interval},
 				client,
 				waitGroupDirectionTracking)
 		}
