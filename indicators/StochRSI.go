@@ -9,7 +9,7 @@ func minRSI(closePrices []float64, rsiPeriod int) (float64, error) {
 	minRSI, size := 9999999999999.9, len(closePrices)
 
 	if rsiPeriod > size {
-		return 0, errors.New("размер истории валюты меньше необходимого для вычисления минимального RSI за период")
+		return 0, errors.New("Размер истории валюты меньше необходимого для вычисления минимального RSI за период")
 	}
 
 	for count := 0; count < size && count+rsiPeriod+1 <= size; count++ {
@@ -30,7 +30,7 @@ func maxRSI(closePrices []float64, rsiPeriod int) (float64, error) {
 	maxRSI, size := 0.0, len(closePrices)
 
 	if rsiPeriod > size {
-		return 0, errors.New("размер истории валюты меньше необходимого для вычисления максимального RSI за период")
+		return 0, errors.New("Размер истории валюты меньше необходимого для вычисления максимального RSI за период")
 	}
 
 	for count := 0; count < size && count+rsiPeriod+1 <= size; count++ {
@@ -49,7 +49,7 @@ func maxRSI(closePrices []float64, rsiPeriod int) (float64, error) {
 // StochRSI - стохастический осциллилятор
 func StochRSI(closePrices []float64, rsiPeriod int, stochPeriod int, kSmothing int, dSmothing int) ([]float64, []float64, error) {
 	if rsiPeriod+stochPeriod+kSmothing > len(closePrices) {
-		return nil, nil, errors.New("размер истории валюты меньше необходимого для вычисления StochRSI")
+		return nil, nil, errors.New("Размер истории валюты меньше необходимого для вычисления StochRSI")
 	}
 
 	// получение не сглаженных значений
@@ -57,15 +57,15 @@ func StochRSI(closePrices []float64, rsiPeriod int, stochPeriod int, kSmothing i
 	for count := 0; count < len(closePrices) && count+stochPeriod+rsiPeriod+1 <= len(closePrices); count++ {
 		currentRSI, err := RSI(closePrices[count+stochPeriod : count+stochPeriod+rsiPeriod+1])
 		if err != nil {
-			return nil, nil, errors.New("невозможно получить текущий RSI: " + err.Error())
+			return nil, nil, errors.New("Невозможно получить текущий RSI: " + err.Error())
 		}
 		minRSI, err := minRSI(closePrices[count:count+stochPeriod+rsiPeriod+1], rsiPeriod)
 		if err != nil {
-			return nil, nil, errors.New("невозможно получить минимальный RSI за период: " + err.Error())
+			return nil, nil, errors.New("Невозможно получить минимальный RSI за период: " + err.Error())
 		}
 		maxRSI, err := maxRSI(closePrices[count:count+stochPeriod+rsiPeriod+1], rsiPeriod)
 		if err != nil {
-			return nil, nil, errors.New("невозможно получить максимальный RSI за период: " + err.Error())
+			return nil, nil, errors.New("Невозможно получить максимальный RSI за период: " + err.Error())
 		}
 		kNotSmoothed[count] = (currentRSI - minRSI) / (maxRSI - minRSI) * 100
 	}
