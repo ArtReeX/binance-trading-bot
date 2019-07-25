@@ -32,12 +32,6 @@ func DirectionTracking(direction Direction,
 	// создание параметров ордера для текущего направления
 	orderInfo := &OrderInfo{}
 
-	// запуск обновления статуса ордеров
-	go updateOrderStatus([]*binance.Order{orderInfo.BuyOrder, orderInfo.StopLossOrder}, client)
-
-	// запуск слежения за открытым ордером на покупку для установки STOP-LOSS ордера
-	go checkBuyOrder(orderInfo.BuyOrder, orderInfo.StopLossOrder, client)
-
 	// запуск отслеживания индикаторами
 	action := make(chan binance.SideType)
 	go trackStochRSI(direction.Base+direction.Quote, direction.Interval, action, client)
@@ -49,8 +43,7 @@ func DirectionTracking(direction Direction,
 		case binance.SideTypeBuy:
 			{
 				// создание ордера на покупку
-				if (orderInfo.BuyOrder == nil && orderInfo.StopLossOrder == nil) ||
-					(orderInfo.StopLossOrder != nil && orderInfo.StopLossOrder.Status == "FILLED") {
+				if orderInfo.BuyOrder == nil && orderInfo.StopLossOrder == nil {
 					balance, err := client.GetBalanceFree(direction.Quote)
 					if err != nil {
 						log.Println(err)
@@ -66,6 +59,7 @@ func DirectionTracking(direction Direction,
 						log.Println(err)
 						continue
 					}
+
 					orderInfo.BuyOrder = &binance.Order{
 						Symbol:           openOrder.Symbol,
 						OrderID:          openOrder.OrderID,
@@ -78,13 +72,22 @@ func DirectionTracking(direction Direction,
 						Type:             openOrder.Type,
 						Side:             openOrder.Side,
 						Time:             openOrder.TransactTime}
+
+					// запуск мониторинга за статусом
+					go updateOrderStatus(orderInfo.BuyOrder, client)
+
+					log.Println("Создан ордер на покупку с направлением", orderInfo.BuyOrder.Symbol, ", периодом", direction.Interval,
+						"по цене", orderInfo.BuyOrder.Price, "и количеством", orderInfo.BuyOrder.OrigQuantity)
+
+					// создание STOP-LOSS ордера
+					go createLinkStopLossOrder(orderInfo.BuyOrder, orderInfo.StopLossOrder, client)
 				}
 			}
 		case binance.SideTypeSell:
 			{
 				// создание ордера на продажу
 				if orderInfo.BuyOrder != nil && orderInfo.StopLossOrder != nil {
-					currentPrice, err := client.GetCurrentPrice(orderInfo.BuyOrder.Price)
+					currentPrice, err := client.GetCurrentPrice(orderInfo.BuyOrder.Symbol)
 					if err != nil {
 						log.Println(err)
 						continue
@@ -103,6 +106,10 @@ func DirectionTracking(direction Direction,
 							log.Println(err)
 							continue
 						}
+
+						log.Println("Отменён STOP-LOSS ордер на продажу с направлением", orderInfo.BuyOrder.Symbol, ", периодом",
+							direction.Interval, "по цене", orderInfo.BuyOrder.Price, "и количеством", orderInfo.BuyOrder.OrigQuantity)
+
 						// создание ордера на продажу
 						quantity, err := strconv.ParseFloat(orderInfo.BuyOrder.ExecutedQuantity, 64)
 						if err != nil {
@@ -118,9 +125,9 @@ func DirectionTracking(direction Direction,
 						orderInfo.BuyOrder = nil
 						orderInfo.StopLossOrder = nil
 
-						log.Println("Создан ордер на продажу с направлением", orderInfo.BuyOrder.Symbol,
-							"по цене", orderInfo.BuyOrder.Price, "и количеством", orderInfo.BuyOrder.OrigQuantity,
-							", выгода составит", currentPrice*quantity-purchasePrice*quantity, direction.Quote)
+						log.Println("Создан ордер на продажу с направлением", orderInfo.BuyOrder.Symbol, ", периодом",
+							direction.Interval, "по цене", orderInfo.BuyOrder.Price, "и количеством",
+							orderInfo.BuyOrder.OrigQuantity, ", выгода составит", currentPrice*quantity-purchasePrice*quantity, direction.Quote)
 					}
 				}
 			}

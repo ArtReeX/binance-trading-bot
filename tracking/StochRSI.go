@@ -42,7 +42,6 @@ func trackStochRSI(pair string, interval string, action chan<- binance.SideType,
 
 		// если мы в зоне перекупленности
 		if kCandleCurrent < 20 && dCandleCurrent < 20 {
-
 			// если произошло пересечение быстрой прямой долгую снизу вверх в зоне перепроданности то выполняем покупку
 			if kCandlePrev <= dCandlePrev && kCandleCurrent > dCandleCurrent {
 				action <- binance.SideTypeBuy
@@ -53,7 +52,6 @@ func trackStochRSI(pair string, interval string, action chan<- binance.SideType,
 		}
 		// если мы в зоне перепроданности
 		if kCandleCurrent > 80 && dCandleCurrent > 80 {
-
 			// если произошло пересечение быстрой прямой долгую сверху вниз в зоне перекупленности то выполняем продажу
 			if kCandlePrev >= dCandlePrev && kCandleCurrent < dCandleCurrent {
 				action <- binance.SideTypeSell

@@ -37,7 +37,6 @@ func (api *API) CancelOrder(pair string, id int64) (*binance.CancelOrderResponse
 
 // CreateMarketSellOrder - функция создания MARKET ордера на продажу
 func (api *API) CreateMarketSellOrder(pair string, quantity float64) (*binance.CreateOrderResponse, error) {
-
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeSell).
@@ -54,7 +53,6 @@ func (api *API) CreateMarketSellOrder(pair string, quantity float64) (*binance.C
 
 // CreateMarketBuyOrder - функция создания MARKET ордера на покупку
 func (api *API) CreateMarketBuyOrder(pair string, quantity float64) (*binance.CreateOrderResponse, error) {
-
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeBuy).
