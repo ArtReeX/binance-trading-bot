@@ -12,7 +12,7 @@ func main() {
 	log.Println("Запуск бота для торговли на Binance.")
 
 	// получение настроек
-	config, err := GetConfig("config.json")
+	config, err := GetConfig("/config.json")
 	if err != nil {
 		log.Fatalln("Невозможно загрузить файл конфигурации:", err.Error())
 	}

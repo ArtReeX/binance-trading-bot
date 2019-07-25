@@ -5,6 +5,8 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"os"
+	"path/filepath"
 )
 
 // Direction - структура направления
@@ -28,7 +30,7 @@ type Config struct {
 
 // GetConfig - функция получения настроек
 func GetConfig(path string) (*Config, error) {
-	raw, err := ioutil.ReadFile(path)
+	raw, err := ioutil.ReadFile(filepath.Dir(os.Args[0]) + path)
 	if err != nil {
 		return nil, errors.New("Ошибка загрузки конфигурации: " + err.Error())
 	}
