@@ -9,9 +9,10 @@ import (
 
 // Direction - структура направления
 type Direction struct {
-	Base      string
-	Quote     string
-	Intervals []string
+	Base                          string
+	Quote                         string
+	Intervals                     []string
+	PercentOfBudgetPerTransaction float64
 }
 
 // Config - структра содержащая параметры бота

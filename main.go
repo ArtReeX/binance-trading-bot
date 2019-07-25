@@ -26,9 +26,10 @@ func main() {
 		for _, interval := range direction.Intervals {
 			waitGroupDirectionTracking.Add(1)
 			go tracking.DirectionTracking(tracking.Direction{
-				Base:     direction.Base,
-				Quote:    direction.Quote,
-				Interval: interval},
+				Base:                          direction.Base,
+				Quote:                         direction.Quote,
+				Interval:                      interval,
+				PercentOfBudgetPerTransaction: direction.PercentOfBudgetPerTransaction},
 				client,
 				waitGroupDirectionTracking)
 		}

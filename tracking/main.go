@@ -12,9 +12,10 @@ import (
 
 // Direction - структура направления
 type Direction struct {
-	Base     string
-	Quote    string
-	Interval string
+	Base                          string
+	Quote                         string
+	Interval                      string
+	PercentOfBudgetPerTransaction float64
 }
 
 // OrderInfo - параметры ордера для текущего направления
@@ -55,7 +56,7 @@ func DirectionTracking(direction Direction,
 						continue
 					}
 					openOrder, err := client.CreateLimitBuyOrder(direction.Base+direction.Quote,
-						balance/currentPrice*0.1, currentPrice+currentPrice*0.0005)
+						balance/currentPrice*(direction.PercentOfBudgetPerTransaction/100), currentPrice+currentPrice*0.0005)
 					if err != nil {
 						log.Println(err)
 						continue
