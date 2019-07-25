@@ -57,7 +57,7 @@ func createLinkStopLossOrder(buyOrder **binance.Order, stopLossOrder **binance.O
 			order, err := client.CreateStopLimitSellOrder((*buyOrder).Symbol,
 				quantity,
 				price-(price*0.005),
-				price-(price*0.0045))
+				price-(price*0.0048))
 			if err != nil {
 				log.Println(err)
 				continue
