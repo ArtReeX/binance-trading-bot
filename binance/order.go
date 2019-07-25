@@ -78,7 +78,7 @@ func (api *API) CreateStopLimitSellOrder(pair string,
 		Type(binance.OrderTypeStopLossLimit).
 		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		Price(strconv.FormatFloat(price, 'f', 2, 64)).
-		StopPrice(strconv.FormatFloat(price, 'f', 2, 64)).
+		StopPrice(strconv.FormatFloat(stopPrice, 'f', 2, 64)).
 		TimeInForce(binance.TimeInForceGTC).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
@@ -100,7 +100,7 @@ func (api *API) CreateStopLimitBuyOrder(
 		Type(binance.OrderTypeLimit).
 		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		Price(strconv.FormatFloat(price, 'f', 2, 64)).
-		StopPrice(strconv.FormatFloat(price, 'f', 2, 64)).
+		StopPrice(strconv.FormatFloat(stopPrice, 'f', 2, 64)).
 		TimeInForce(binance.TimeInForceGTC).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
