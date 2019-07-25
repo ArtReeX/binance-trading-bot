@@ -46,7 +46,7 @@ func trackStochRSI(pair string, interval string, action chan<- binance.SideType,
 			if kCandlePrev <= dCandlePrev && kCandleCurrent > dCandleCurrent {
 				action <- binance.SideTypeBuy
 			}
-			// если мы в нейтральной зоне уменьшаем частоту проверок
+			// если мы в зоне покупки уменьшаем частоту проверок
 			time.Sleep(time.Second)
 			continue
 		}
@@ -56,7 +56,7 @@ func trackStochRSI(pair string, interval string, action chan<- binance.SideType,
 			if kCandlePrev >= dCandlePrev && kCandleCurrent < dCandleCurrent {
 				action <- binance.SideTypeSell
 			}
-			// если мы в нейтральной зоне уменьшаем частоту проверок
+			// если мы в зоне продажи уменьшаем частоту проверок
 			time.Sleep(time.Second)
 			continue
 		}
