@@ -83,8 +83,25 @@ func createLinkStopLossOrder(buyOrder **binance.Order, stopLossOrder **binance.O
 				(*stopLossOrder).Symbol, "по цене", (*stopLossOrder).Price, "и количеством", (*stopLossOrder).OrigQuantity)
 
 		} else if *buyOrder != nil && *stopLossOrder != nil && (*stopLossOrder).Status == "FILLED" {
+			purchasePrice, err := strconv.ParseFloat((*buyOrder).Price, 64)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			sellPrice, err := client.GetCurrentPrice((*buyOrder).Symbol)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+			quantity, err := strconv.ParseFloat((*buyOrder).ExecutedQuantity, 64)
+			if err != nil {
+				log.Println(err)
+				continue
+			}
+
 			log.Println("Сработал STOP-LOSS ордер", (*stopLossOrder).OrderID, "привязанный к ордеру", (*buyOrder).OrderID, "с направлением",
-				(*stopLossOrder).Symbol, "по цене", (*stopLossOrder).Price, "и количеством", (*stopLossOrder).OrigQuantity)
+				(*stopLossOrder).Symbol, "по цене", (*stopLossOrder).Price, "и количеством", (*stopLossOrder).OrigQuantity,
+				"потеря составила", purchasePrice*quantity-sellPrice*quantity, (*buyOrder).Symbol)
 
 			*buyOrder = nil
 			*stopLossOrder = nil
