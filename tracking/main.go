@@ -125,7 +125,7 @@ func DirectionTracking(direction Direction,
 						}
 
 						log.Println("Создан ордер", order.OrderID, "на продажу с направлением", orderInfo.BuyOrder.Symbol, "периодом",
-							direction.Interval, "по цене", orderInfo.BuyOrder.Price, "и количеством",
+							direction.Interval, "по цене", currentPrice, "и количеством",
 							orderInfo.BuyOrder.OrigQuantity, "выгода составит", currentPrice*quantity-purchasePrice*quantity, direction.Quote)
 
 						orderInfo.BuyOrder = nil
