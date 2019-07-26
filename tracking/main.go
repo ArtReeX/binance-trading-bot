@@ -25,11 +25,12 @@ const (
 // IndicatorStatuses - статусы индикаторов
 type IndicatorStatuses struct {
 	StochRSI IndicatorStatus
+	MACD     IndicatorStatus
 }
 
 // generalizedStatus - функция получения обобщённого статуса индикаторов
 func (statuses *IndicatorStatuses) generalizedStatus() IndicatorStatus {
-	generalized := statuses.StochRSI
+	generalized := statuses.StochRSI + statuses.MACD
 	if generalized > 0 {
 		return IndicatorStatusBuy
 	} else if generalized < 0 {
@@ -66,6 +67,7 @@ func DirectionTracking(direction Direction,
 
 	// запуск отслеживания индикаторами
 	go trackStochRSI(direction.Base+direction.Quote, direction.Interval, &indicatorStatuses.StochRSI, client)
+	go trackMACD(direction.Base+direction.Quote, direction.Interval, &indicatorStatuses.MACD, client)
 
 	// создание параметров ордера для текущего направления
 	orderInfo := OrderInfo{}
