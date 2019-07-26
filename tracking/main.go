@@ -20,8 +20,10 @@ type Direction struct {
 
 // OrderInfo - параметры ордера для текущего направления
 type OrderInfo struct {
-	BuyOrder      *binance.Order
-	StopLossOrder *binance.Order
+	BuyOrderMutex      sync.Mutex
+	BuyOrder           *binance.Order
+	StopLossOrderMutex sync.Mutex
+	StopLossOrder      *binance.Order
 }
 
 // DirectionTracking - поток отслеживания направления
@@ -62,6 +64,7 @@ func DirectionTracking(direction Direction,
 						continue
 					}
 
+					orderInfo.BuyOrderMutex.Lock()
 					orderInfo.BuyOrder = &binance.Order{
 						Symbol:           openOrder.Symbol,
 						OrderID:          openOrder.OrderID,
@@ -74,15 +77,17 @@ func DirectionTracking(direction Direction,
 						Type:             openOrder.Type,
 						Side:             openOrder.Side,
 						Time:             openOrder.TransactTime}
+					orderInfo.BuyOrderMutex.Unlock()
 
 					// запуск мониторинга за статусом
-					go updateOrderStatus(&orderInfo.BuyOrder, client)
+					go updateOrderStatus(&orderInfo.BuyOrder, &orderInfo.BuyOrderMutex, client)
 
 					log.Println("Создан ордер", orderInfo.BuyOrder.OrderID, "на покупку с направлением", orderInfo.BuyOrder.Symbol,
 						"периодом", direction.Interval, "по цене", orderInfo.BuyOrder.Price, "и количеством", orderInfo.BuyOrder.OrigQuantity)
 
 					// создание STOP-LOSS ордера
-					go createLinkStopLossOrder(&orderInfo.BuyOrder, &orderInfo.StopLossOrder, client)
+					go createLinkStopLossOrder(&orderInfo.BuyOrder, &orderInfo.BuyOrderMutex,
+						&orderInfo.StopLossOrder, &orderInfo.StopLossOrderMutex, client)
 				}
 			}
 		case binance.SideTypeSell:
@@ -128,8 +133,12 @@ func DirectionTracking(direction Direction,
 							direction.Interval, "по цене", currentPrice, "и количеством",
 							orderInfo.BuyOrder.OrigQuantity, "выгода составит", currentPrice*quantity-purchasePrice*quantity, direction.Quote)
 
+						orderInfo.BuyOrderMutex.Lock()
+						orderInfo.StopLossOrderMutex.Lock()
 						orderInfo.BuyOrder = nil
 						orderInfo.StopLossOrder = nil
+						orderInfo.BuyOrderMutex.Unlock()
+						orderInfo.StopLossOrderMutex.Unlock()
 					}
 				}
 			}
