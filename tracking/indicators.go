@@ -2,7 +2,6 @@ package tracking
 
 import (
 	"log"
-	"time"
 
 	"github.com/markcheno/go-talib"
 
@@ -35,26 +34,17 @@ func trackStochRSI(pair string, interval string, status *IndicatorStatus, client
 
 		// последние две свечи
 		kCandleCurrent := kFast[len(kFast)-1]
-		kCandlePrev := kFast[len(kFast)-2]
 		dCandleCurrent := dLong[len(dLong)-1]
-		dCandlePrev := dLong[len(dLong)-2]
 
 		if kCandleCurrent < 20 && dCandleCurrent < 20 {
-			// если произошло пересечение быстрой прямой долгую снизу вверх в зоне перепроданности - покупка
-			if kCandlePrev <= dCandlePrev && kCandleCurrent > dCandleCurrent {
-				*status = IndicatorStatusBuy
-			}
+			// если обе линии зоне перекупленности - покупка
+			*status = IndicatorStatusBuy
 		} else if kCandleCurrent > 80 && dCandleCurrent > 80 {
-			// если произошло пересечение быстрой прямой долгую сверху вниз в зоне перекупленности  - продажа
-			if kCandlePrev >= dCandlePrev && kCandleCurrent < dCandleCurrent {
-				*status = IndicatorStatusSell
-			}
+			// если обе линии зоне перекупленности - продажа
+			*status = IndicatorStatusSell
 		} else {
 			// если мы в нейтральной зоне - нейтрально
 			*status = IndicatorStatusNeutral
-
-			// если мы в нейтральной зоне увеличиваем частоту проверок
-			time.Sleep(time.Second * 5)
 		}
 	}
 }
@@ -83,16 +73,17 @@ func trackMACD(pair string, interval string, status *IndicatorStatus, client *bn
 			continue
 		}
 
-		if signal[len(signal)-1] > 0 {
+		currentSignal := signal[len(signal)-1]
+
+		if currentSignal > 0 {
 			// если сигнал выше нуля - покупаем
 			*status = IndicatorStatusBuy
-		} else if signal[len(signal)-1] < 0 {
+		} else if currentSignal < 0 {
 			// если сигнал нижу нуля - продаём
 			*status = IndicatorStatusSell
 		} else {
-			*status = IndicatorStatusNeutral
 			// если сигнал на нуле - нейтрально
-			time.Sleep(time.Second * 5)
+			*status = IndicatorStatusNeutral
 		}
 	}
 }
