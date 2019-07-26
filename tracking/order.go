@@ -78,7 +78,7 @@ func createLinkStopLossOrder(buyOrder **binance.Order, stopLossOrder **binance.O
 				Side:             order.Side,
 				Time:             order.TransactTime}
 
-			// запуск мониторинга за ордером
+			// запуск мониторинга за статусом ордера
 			go updateOrderStatus(stopLossOrder, client)
 
 			log.Println("Добавлен STOP-LOSS ордер", (*stopLossOrder).OrderID, "привязанный к ордеру", (*buyOrder).OrderID, "с направлением",

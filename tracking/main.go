@@ -77,7 +77,7 @@ func DirectionTracking(direction Direction,
 						Side:             openOrder.Side,
 						Time:             openOrder.TransactTime}
 
-					// запуск мониторинга за статусом
+					// запуск мониторинга за статусом ордера
 					go updateOrderStatus(&orderInfo.BuyOrder, client)
 
 					log.Println("Создан ордер", orderInfo.BuyOrder.OrderID, "на покупку с направлением", orderInfo.BuyOrder.Symbol,
@@ -142,6 +142,9 @@ func DirectionTracking(direction Direction,
 						log.Println("Создан ордер", orderInfo.SellOrder.OrderID, "на продажу с направлением", orderInfo.BuyOrder.Symbol, "периодом",
 							direction.Interval, "по цене", currentPrice, "и количеством",
 							orderInfo.BuyOrder.OrigQuantity, "выгода составит", currentPrice*quantity-purchasePrice*quantity, direction.Quote)
+
+						// запуск мониторинга за статусом ордера
+						go updateOrderStatus(&orderInfo.SellOrder, client)
 
 						orderInfo.BuyOrder = nil
 						orderInfo.StopLossOrder = nil
