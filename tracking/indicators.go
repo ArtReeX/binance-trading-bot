@@ -27,17 +27,17 @@ func trackStochRSI(pair string, interval string, status *IndicatorStatus, client
 		}
 
 		// получение данных индикатора StochRSI
-		k, d := talib.StochRsi(closePrices, 14, 9, 3, talib.EMA)
+		kFast, dLong := talib.StochRsi(closePrices, 14, 9, 3, talib.EMA)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
 		// последние две свечи
-		kCandleCurrent := k[len(k)-1]
-		kCandlePrev := k[len(k)-2]
-		dCandleCurrent := d[len(d)-1]
-		dCandlePrev := d[len(d)-2]
+		kCandleCurrent := kFast[len(kFast)-1]
+		kCandlePrev := kFast[len(kFast)-2]
+		dCandleCurrent := dLong[len(dLong)-1]
+		dCandlePrev := dLong[len(dLong)-2]
 
 		if kCandleCurrent < 20 && dCandleCurrent < 20 {
 			// если произошло пересечение быстрой прямой долгую снизу вверх в зоне перепроданности - покупка
@@ -77,16 +77,16 @@ func trackMACD(pair string, interval string, status *IndicatorStatus, client *bn
 		}
 
 		// получение данных индикатора MACD
-		_, l, _ := talib.Macd(closePrices, 12, 26, 9)
+		_, signal, _ := talib.Macd(closePrices, 12, 26, 9)
 		if err != nil {
 			log.Println(err)
 			continue
 		}
 
-		if l[len(l)-1] > 0 {
+		if signal[len(signal)-1] > 0 {
 			// если сигнал выше нуля - покупаем
 			*status = IndicatorStatusBuy
-		} else if l[len(l)-1] < 0 {
+		} else if signal[len(signal)-1] < 0 {
 			// если сигнал нижу нуля - продаём
 			*status = IndicatorStatusSell
 		} else {
