@@ -40,9 +40,9 @@ func updateOrderStatus(renewableOrder **binance.Order, client *bnc.API) {
 }
 
 // createLinkStopLoss - функция создания связующего STOP-LOSS ордера
-func createLinkStopLossOrder(buyOrder **binance.Order, stopLossOrder **binance.Order, client *bnc.API) {
+func createLinkStopLossOrder(buyOrder **binance.Order, stopLossOrder **binance.Order, sellOrder **binance.Order, client *bnc.API) {
 	for {
-		if *buyOrder != nil && (*buyOrder).Status == "FILLED" && *stopLossOrder == nil {
+		if *buyOrder != nil && (*buyOrder).Status == "FILLED" && *stopLossOrder == nil && *sellOrder != nil {
 			// получение количества исполнения ордера
 			quantity, err := strconv.ParseFloat((*buyOrder).ExecutedQuantity, 64)
 			if err != nil {

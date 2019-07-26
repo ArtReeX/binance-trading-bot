@@ -22,6 +22,7 @@ type Direction struct {
 type OrderInfo struct {
 	BuyOrder      *binance.Order
 	StopLossOrder *binance.Order
+	SellOrder     *binance.Order
 }
 
 // DirectionTracking - поток отслеживания направления
@@ -62,6 +63,7 @@ func DirectionTracking(direction Direction,
 						continue
 					}
 
+					orderInfo.SellOrder = nil
 					orderInfo.BuyOrder = &binance.Order{
 						Symbol:           openOrder.Symbol,
 						OrderID:          openOrder.OrderID,
@@ -82,7 +84,7 @@ func DirectionTracking(direction Direction,
 						"периодом", direction.Interval, "по цене", orderInfo.BuyOrder.Price, "и количеством", orderInfo.BuyOrder.OrigQuantity)
 
 					// создание STOP-LOSS ордера
-					go createLinkStopLossOrder(&orderInfo.BuyOrder, &orderInfo.StopLossOrder, client)
+					go createLinkStopLossOrder(&orderInfo.BuyOrder, &orderInfo.StopLossOrder, &orderInfo.SellOrder, client)
 				}
 			}
 		case binance.SideTypeSell:
@@ -124,7 +126,20 @@ func DirectionTracking(direction Direction,
 							continue
 						}
 
-						log.Println("Создан ордер", order.OrderID, "на продажу с направлением", orderInfo.BuyOrder.Symbol, "периодом",
+						orderInfo.SellOrder = &binance.Order{
+							Symbol:           order.Symbol,
+							OrderID:          order.OrderID,
+							ClientOrderID:    order.ClientOrderID,
+							Price:            order.Price,
+							OrigQuantity:     order.OrigQuantity,
+							ExecutedQuantity: order.ExecutedQuantity,
+							Status:           order.Status,
+							TimeInForce:      order.TimeInForce,
+							Type:             order.Type,
+							Side:             order.Side,
+							Time:             order.TransactTime}
+
+						log.Println("Создан ордер", orderInfo.SellOrder.OrderID, "на продажу с направлением", orderInfo.BuyOrder.Symbol, "периодом",
 							direction.Interval, "по цене", currentPrice, "и количеством",
 							orderInfo.BuyOrder.OrigQuantity, "выгода составит", currentPrice*quantity-purchasePrice*quantity, direction.Quote)
 
