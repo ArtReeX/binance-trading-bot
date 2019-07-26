@@ -12,6 +12,7 @@ import (
 
 // updateOrderStatus - функция обновления статуса ордера
 func updateOrderStatus(renewableOrder **binance.Order, client *bnc.API) {
+	time.Sleep(time.Second * 1)
 	for {
 		if *renewableOrder != nil {
 			order, err := client.GetOrder((*renewableOrder).Symbol, (*renewableOrder).OrderID)
@@ -22,13 +23,11 @@ func updateOrderStatus(renewableOrder **binance.Order, client *bnc.API) {
 			// если ордер отменён - удаляем, в ином случае - обновляем
 			if order.Status == "CANCELED" || order.Status == "EXPIRED" {
 				*renewableOrder = nil
-
 				log.Println("Убран ордер", order.OrderID, "из списка наблюдения с направлением",
 					order.Symbol, "по цене", order.Price, "и количеством", order.OrigQuantity)
 				return
 			} else if *renewableOrder != nil && order.Status != (*renewableOrder).Status {
 				*renewableOrder = order
-
 				log.Println("Обновлен статус ордера", order.OrderID, "в списке наблюдения с направлением",
 					order.Symbol, "по цене", order.Price, "и количеством", order.OrigQuantity)
 			}
@@ -41,6 +40,7 @@ func updateOrderStatus(renewableOrder **binance.Order, client *bnc.API) {
 
 // createLinkStopLoss - функция создания связующего STOP-LOSS ордера
 func createLinkStopLossOrder(buyOrder **binance.Order, stopLossOrder **binance.Order, sellOrder **binance.Order, client *bnc.API) {
+	time.Sleep(time.Second * 1)
 	for {
 		if *buyOrder != nil && (*buyOrder).Status == "FILLED" && *stopLossOrder == nil && *sellOrder == nil {
 			// получение количества исполнения ордера

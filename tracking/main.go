@@ -10,6 +10,34 @@ import (
 	bnc "../binance"
 )
 
+// IndicatorStatus - статус индикатора
+type IndicatorStatus int8
+
+const (
+	// IndicatorStatusBuy - сигнал на покупку
+	IndicatorStatusBuy IndicatorStatus = 1
+	// IndicatorStatusNeutral - нейстральный сигнал
+	IndicatorStatusNeutral IndicatorStatus = 0
+	// IndicatorStatusSell - сигнал на продажу
+	IndicatorStatusSell IndicatorStatus = -1
+)
+
+// IndicatorStatuses - статусы индикаторов
+type IndicatorStatuses struct {
+	StochRSI IndicatorStatus
+}
+
+// generalizedStatus - функция получения обобщённого статуса индикаторов
+func (statuses *IndicatorStatuses) generalizedStatus() IndicatorStatus {
+	generalized := statuses.StochRSI
+	if generalized > 0 {
+		return IndicatorStatusBuy
+	} else if generalized < 0 {
+		return IndicatorStatusSell
+	}
+	return IndicatorStatusNeutral
+}
+
 // Direction - структура направления
 type Direction struct {
 	Base                          string
@@ -31,18 +59,21 @@ func DirectionTracking(direction Direction,
 	waitGroupDirectionTracking *sync.WaitGroup) {
 	defer waitGroupDirectionTracking.Done()
 
-	// создание параметров ордера для текущего направления
-	orderInfo := &OrderInfo{}
+	log.Println("Запущено отслеживание по направлению", direction.Base+direction.Quote, "с периодом", direction.Interval)
+
+	// создание статусов индикаторов
+	indicatorStatuses := IndicatorStatuses{StochRSI: IndicatorStatusNeutral}
 
 	// запуск отслеживания индикаторами
-	action := make(chan binance.SideType)
-	go trackStochRSI(direction.Base+direction.Quote, direction.Interval, action, client)
-	log.Println("Запущено отслеживание по направлению", direction.Base+direction.Quote, "с периодом", direction.Interval)
+	go trackStochRSI(direction.Base+direction.Quote, direction.Interval, &indicatorStatuses.StochRSI, client)
+
+	// создание параметров ордера для текущего направления
+	orderInfo := OrderInfo{}
 
 	// определение необходимого действия
 	for {
-		switch <-action {
-		case binance.SideTypeBuy:
+		switch indicatorStatuses.generalizedStatus() {
+		case IndicatorStatusBuy:
 			{
 				// создание ордера на покупку
 				if orderInfo.BuyOrder == nil && orderInfo.StopLossOrder == nil {
@@ -87,7 +118,7 @@ func DirectionTracking(direction Direction,
 					go createLinkStopLossOrder(&orderInfo.BuyOrder, &orderInfo.StopLossOrder, &orderInfo.SellOrder, client)
 				}
 			}
-		case binance.SideTypeSell:
+		case IndicatorStatusSell:
 			{
 				// создание ордера на продажу
 				if orderInfo.BuyOrder != nil && orderInfo.StopLossOrder != nil {
@@ -153,4 +184,5 @@ func DirectionTracking(direction Direction,
 			}
 		}
 	}
+
 }

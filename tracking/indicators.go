@@ -4,14 +4,13 @@ import (
 	"log"
 	"time"
 
-	"github.com/adshao/go-binance"
+	"github.com/markcheno/go-talib"
 
 	bnc "../binance"
-	indicators "../indicators"
 )
 
 // trackStochRSI индикатор покупки либо продажи валюты
-func trackStochRSI(pair string, interval string, action chan<- binance.SideType, client *bnc.API) {
+func trackStochRSI(pair string, interval string, status *IndicatorStatus, client *bnc.API) {
 	for {
 		// получение истории торгов по валюте
 		candleHistory, err := client.GetCandleHistory(pair, interval)
@@ -28,7 +27,7 @@ func trackStochRSI(pair string, interval string, action chan<- binance.SideType,
 		}
 
 		// получение данных индикатора StochRSI
-		k, d, err := indicators.StochRSI(closePrices, 14, 9, 3, 3)
+		k, d := talib.StochRsi(closePrices, 14, 9, 3, talib.EMA)
 		if err != nil {
 			log.Println(err)
 			continue
@@ -43,18 +42,15 @@ func trackStochRSI(pair string, interval string, action chan<- binance.SideType,
 		if kCandleCurrent < 20 && dCandleCurrent < 20 {
 			// если произошло пересечение быстрой прямой долгую снизу вверх в зоне перепроданности то выполняем покупку
 			if kCandlePrev <= dCandlePrev && kCandleCurrent > dCandleCurrent {
-				action <- binance.SideTypeBuy
+				*status = IndicatorStatusBuy
 			}
-			// если мы в зоне перекупленности уменьшаем частоту проверок
-			time.Sleep(time.Second / 2)
 		} else if kCandleCurrent > 80 && dCandleCurrent > 80 {
 			// если произошло пересечение быстрой прямой долгую сверху вниз в зоне перекупленности то выполняем продажу
 			if kCandlePrev >= dCandlePrev && kCandleCurrent < dCandleCurrent {
-				action <- binance.SideTypeSell
+				*status = IndicatorStatusSell
 			}
-			// если мы в зоне перепроданности уменьшаем частоту проверок
-			time.Sleep(time.Second / 2)
 		} else {
+			*status = IndicatorStatusNeutral
 			// если мы в нейтральной зоне увеличиваем частоту проверок
 			time.Sleep(time.Second * 5)
 		}
