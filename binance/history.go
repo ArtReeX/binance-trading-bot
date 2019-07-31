@@ -14,6 +14,10 @@ type TypeOfReceiving uint
 const (
 	// Close - цена закрытия свечи
 	Close TypeOfReceiving = iota
+	// High -  максимальная цена свечи
+	High TypeOfReceiving = iota
+	// Low - минимальная цена свеча
+	Low TypeOfReceiving = iota
 )
 
 // GetCandleHistory - функция получения истории цены для валюты
@@ -29,15 +33,39 @@ func (api *API) GetCandleHistory(symbol string, interval string) ([]*binance.Kli
 // ConvertCandleHistory - функция преобразования истории валюты
 func (api *API) ConvertCandleHistory(history []*binance.Kline, typeOfReceiving TypeOfReceiving) ([]float64, error) {
 	switch typeOfReceiving {
+	case High:
+		{
+			highPrices := make([]float64, len(history))
+			for index, candle := range history {
+				highPrice, err := strconv.ParseFloat(candle.High, 64)
+				if err != nil {
+					return nil, errors.New("Невозможно преобразовать строку максимальной цены свечи в дробь")
+				}
+				highPrices[index] = highPrice
+			}
+			return highPrices, nil
+		}
+	case Low:
+		{
+			lowPrices := make([]float64, len(history))
+			for index, candle := range history {
+				lowPrice, err := strconv.ParseFloat(candle.Low, 64)
+				if err != nil {
+					return nil, errors.New("Невозможно преобразовать строку минимальной цены свечи в дробь")
+				}
+				lowPrices[index] = lowPrice
+			}
+			return lowPrices, nil
+		}
 	case Close:
 		{
 			closePrices := make([]float64, len(history))
 			for index, candle := range history {
-				close, err := strconv.ParseFloat(candle.Close, 64)
+				closePrice, err := strconv.ParseFloat(candle.Close, 64)
 				if err != nil {
-					return nil, errors.New("Невозможно преобразовать строку закрытия свечи в дробь")
+					return nil, errors.New("Невозможно преобразовать строку цены закрытия свечи в дробь")
 				}
-				closePrices[index] = close
+				closePrices[index] = closePrice
 			}
 			return closePrices, nil
 		}

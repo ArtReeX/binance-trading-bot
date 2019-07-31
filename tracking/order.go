@@ -5,74 +5,81 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/adshao/go-binance"
-
 	bnc "../binance"
 )
 
 // updateOrderStatus - функция обновления статуса ордера
-func updateOrderStatus(renewableOrder **binance.Order, client *bnc.API) {
-	time.Sleep(time.Second * 1)
+func updateOrderStatus(renewableOrder **Order, client *bnc.API) {
 	for {
-		if *renewableOrder != nil {
+		if (*renewableOrder).Status != OrderStatusNoCreated {
 			order, err := client.GetOrder((*renewableOrder).Symbol, (*renewableOrder).OrderID)
 			if err != nil {
 				log.Println(err)
 				continue
 			}
-			// если ордер отменён - удаляем, в ином случае - обновляем
-			if order.Status == "CANCELED" || order.Status == "EXPIRED" {
-				*renewableOrder = nil
+			if OrderStatus(order.Status) == OrderStatusCanceled || OrderStatus(order.Status) == OrderStatusExpired {
+				(*renewableOrder).Status = OrderStatusNoCreated
 				log.Println("Убран ордер", order.OrderID, "из списка наблюдения с направлением",
 					order.Symbol, "по цене", order.Price, "и количеством", order.OrigQuantity)
 				return
-			} else if *renewableOrder != nil && order.Status != (*renewableOrder).Status {
-				*renewableOrder = order
+			} else if OrderStatus(order.Status) != (*renewableOrder).Status {
+				*renewableOrder = &Order{
+					Symbol:           order.Symbol,
+					OrderID:          order.OrderID,
+					ClientOrderID:    order.ClientOrderID,
+					Price:            order.Price,
+					OrigQuantity:     order.OrigQuantity,
+					ExecutedQuantity: order.ExecutedQuantity,
+					Status:           OrderStatus(order.Status),
+					TimeInForce:      order.TimeInForce,
+					Type:             order.Type,
+					Side:             order.Side,
+					Time:             order.Time}
+
 				log.Println("Обновлен статус ордера", order.OrderID, "в списке наблюдения с направлением",
 					order.Symbol, "по цене", order.Price, "и количеством", order.OrigQuantity)
 			}
-		} else {
-			return
 		}
 		time.Sleep(time.Second * 1)
 	}
 }
 
 // createLinkStopLoss - функция создания связующего STOP-LOSS ордера
-func createLinkStopLossOrder(buyOrder **binance.Order, stopLossOrder **binance.Order, sellOrder **binance.Order, client *bnc.API) {
-	time.Sleep(time.Second * 1)
+func createLinkStopLossOrder(buyOrder **Order, stopLossOrder **Order, sellOrder **Order, client *bnc.API) {
 	for {
-		if *buyOrder != nil && (*buyOrder).Status == "FILLED" && *stopLossOrder == nil && *sellOrder == nil {
+		if (*buyOrder).Status != OrderStatusFilled &&
+			(*stopLossOrder).Status == OrderStatusNoCreated &&
+			(*sellOrder).Status == OrderStatusNoCreated {
 			// получение количества исполнения ордера
 			quantity, err := strconv.ParseFloat((*buyOrder).ExecutedQuantity, 64)
 			if err != nil {
-				log.Fatalln(err)
+				log.Println(err)
 				continue
 			}
 			// получение цены исполнения ордера
 			price, err := strconv.ParseFloat((*buyOrder).Price, 64)
 			if err != nil {
-				log.Fatalln(err)
+				log.Println(err)
 				continue
 			}
 			// создание STOP-LOSS ордера
 			order, err := client.CreateStopLimitSellOrder((*buyOrder).Symbol,
 				quantity,
-				price-(price*0.005),
-				price-(price*0.0048))
+				price-(price*0.004),
+				price-(price*0.0038))
 			if err != nil {
 				log.Println(err)
 				continue
 			}
 
-			*stopLossOrder = &binance.Order{
+			*stopLossOrder = &Order{
 				Symbol:           order.Symbol,
 				OrderID:          order.OrderID,
 				ClientOrderID:    order.ClientOrderID,
 				Price:            order.Price,
 				OrigQuantity:     order.OrigQuantity,
 				ExecutedQuantity: order.ExecutedQuantity,
-				Status:           order.Status,
+				Status:           OrderStatus(order.Status),
 				TimeInForce:      order.TimeInForce,
 				Type:             order.Type,
 				Side:             order.Side,
@@ -81,10 +88,12 @@ func createLinkStopLossOrder(buyOrder **binance.Order, stopLossOrder **binance.O
 			// запуск мониторинга за статусом ордера
 			go updateOrderStatus(stopLossOrder, client)
 
-			log.Println("Добавлен STOP-LOSS ордер", (*stopLossOrder).OrderID, "привязанный к ордеру", (*buyOrder).OrderID, "с направлением",
-				(*stopLossOrder).Symbol, "по цене", (*stopLossOrder).Price, "и количеством", (*stopLossOrder).OrigQuantity)
+			log.Println("Добавлен STOP-LOSS ордер", (*stopLossOrder).OrderID, "привязанный к ордеру",
+				(*buyOrder).OrderID, "с направлением", (*stopLossOrder).Symbol, "по цене",
+				(*stopLossOrder).Price, "и количеством", (*stopLossOrder).OrigQuantity)
 
-		} else if *buyOrder != nil && *stopLossOrder != nil && (*stopLossOrder).Status == "FILLED" {
+		} else if (*buyOrder).Status != OrderStatusNoCreated &&
+			(*stopLossOrder).Status == OrderStatusFilled {
 			purchasePrice, err := strconv.ParseFloat((*buyOrder).Price, 64)
 			if err != nil {
 				log.Println(err)
@@ -101,17 +110,19 @@ func createLinkStopLossOrder(buyOrder **binance.Order, stopLossOrder **binance.O
 				continue
 			}
 
-			log.Println("Сработал STOP-LOSS ордер", (*stopLossOrder).OrderID, "привязанный к ордеру", (*buyOrder).OrderID, "с направлением",
-				(*stopLossOrder).Symbol, "по цене", (*stopLossOrder).Price, "и количеством", (*stopLossOrder).OrigQuantity,
-				"потеря составила", purchasePrice*quantity-sellPrice*quantity, (*buyOrder).Symbol)
+			log.Println("Сработал STOP-LOSS ордер", (*stopLossOrder).OrderID, "привязанный к ордеру",
+				(*buyOrder).OrderID, "с направлением", (*stopLossOrder).Symbol, "по цене",
+				(*stopLossOrder).Price, "и количеством", (*stopLossOrder).OrigQuantity, "потеря составила",
+				purchasePrice*quantity-sellPrice*quantity, (*buyOrder).Symbol)
 
-			*buyOrder = nil
-			*stopLossOrder = nil
+			(*buyOrder).Status = OrderStatusNoCreated
+			(*stopLossOrder).Status = OrderStatusNoCreated
 
 			return
-		} else if *buyOrder == nil {
+		} else if (*buyOrder).Status == OrderStatusNoCreated {
 			return
 		}
+
 		time.Sleep(time.Second * 1)
 	}
 }

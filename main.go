@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	bnc "./binance"
-	tracking "./tracking"
+	"./tracking"
 )
 
 func main() {

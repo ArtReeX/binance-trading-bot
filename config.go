@@ -7,17 +7,17 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+
+	"./tracking"
 )
 
-// Direction - структура направления
 type Direction struct {
 	Base                          string
 	Quote                         string
-	Intervals                     []string
+	Intervals                     []tracking.Interval
 	PercentOfBudgetPerTransaction float64
 }
 
-// Config - структра содержащая параметры бота
 type Config struct {
 	API struct {
 		Binance struct {
@@ -28,7 +28,6 @@ type Config struct {
 	Directions []Direction
 }
 
-// GetConfig - функция получения настроек
 func GetConfig(path string) (*Config, error) {
 	raw, err := ioutil.ReadFile(filepath.Dir(os.Args[0]) + path)
 	if err != nil {

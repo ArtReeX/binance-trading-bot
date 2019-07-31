@@ -18,7 +18,6 @@
 "percentOfBudgetPerTransaction": 10
 }
 ]
-}
 
 base - базовая валюта (пример: "BTC");
 quote - валюта котировки (пример: "USDT");
