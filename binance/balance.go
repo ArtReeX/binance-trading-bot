@@ -16,7 +16,7 @@ func (api *API) GetBalances() ([]binance.Balance, error) {
 	}
 
 	// получение исключительно положительных балансов
-	balances := []binance.Balance{}
+	var balances []binance.Balance
 	for _, value := range res.Balances {
 		free, err := strconv.ParseFloat(value.Free, 64)
 		if err != nil {

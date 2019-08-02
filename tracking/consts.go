@@ -7,14 +7,20 @@ const (
 )
 
 const (
-	OrderStatusNoCreated       OrderStatus = "NO_CREATED"
 	OrderStatusNew             OrderStatus = "NEW"
 	OrderStatusPartiallyFilled OrderStatus = "PARTIALLY_FILLED"
 	OrderStatusFilled          OrderStatus = "FILLED"
 	OrderStatusCanceled        OrderStatus = "CANCELED"
 	OrderStatusPendingCancel   OrderStatus = "PENDING_CANCEL"
-	OrderStatusRejected                    = "REJECTED"
+	OrderStatusRejected        OrderStatus = "REJECTED"
 	OrderStatusExpired         OrderStatus = "EXPIRED"
+)
+
+const (
+	BotStatusWaitPurchase   BotStatus = iota
+	BotStatusActivePurchase BotStatus = iota
+	BotStatusWaitSell       BotStatus = iota
+	BotStatusActiveSell     BotStatus = iota
 )
 
 const (

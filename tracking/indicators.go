@@ -35,7 +35,6 @@ func trackIndicators(pair string, interval Interval, client *bnc.API, action cha
 			continue
 		}
 
-		// получение статусов индикаторов
 		rsi := talib.Rsi(closePrices, 14)
 		cci := talib.Cci(highPrices, lowPrices, closePrices, 14)
 		williamsR := talib.WillR(highPrices, lowPrices, closePrices, 14)

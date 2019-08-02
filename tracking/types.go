@@ -4,21 +4,7 @@ type Interval string
 
 type IndicatorsStatus int8
 
-type Order struct {
-	Symbol           string
-	OrderID          int64
-	ClientOrderID    string
-	Price            string
-	OrigQuantity     string
-	ExecutedQuantity string
-	Status           OrderStatus
-	TimeInForce      string
-	Type             string
-	Side             string
-	StopPrice        string
-	IcebergQuantity  string
-	Time             int64
-}
+type BotStatus uint8
 
 type OrderStatus string
 
@@ -29,8 +15,10 @@ type Direction struct {
 	PercentOfBudgetPerTransaction float64
 }
 
-type OrderInfo struct {
-	BuyOrder      *Order
-	StopLossOrder *Order
-	SellOrder     *Order
+type Bot struct {
+	BuyOrderId      int64
+	StopLossOrderId int64
+	SellOrderId     int64
+
+	Status BotStatus
 }
