@@ -59,7 +59,7 @@ func DirectionTracking(direction Direction, client *bnc.API, waitGroupDirectionT
 						price, _ := strconv.ParseFloat(finalBuyOrder.Price, 64)
 
 						stopLossOrder, err := client.CreateStopLimitSellOrder(finalBuyOrder.Symbol, quantity,
-							price-price*0.0045, price-price*0.005)
+							price-price*0.003, price-price*0.0031)
 						if err != nil {
 							log.Println(err)
 							continue

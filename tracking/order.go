@@ -54,7 +54,7 @@ func trackStopLossOrder(pair string, id int64, status *BotStatus, client *bnc.AP
 				continue
 			}
 
-			log.Println("Добавлен удалённый недостающий STOP-LOSS ордер", createdOrder.OrderID, "взамен ордера",
+			log.Println("Добавлен недостающий STOP-LOSS ордер", createdOrder.OrderID, "взамен ордера",
 				order.OrderID, "с направлением", createdOrder.Symbol, "по цене",
 				createdOrder.Price, "и количеством", createdOrder.OrigQuantity)
 
