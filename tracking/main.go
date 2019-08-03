@@ -17,9 +17,9 @@ func DirectionTracking(direction Direction, client *bnc.API, waitGroupDirectionT
 		direction.Interval)
 
 	// инициализация ордеров
-	bot := Bot{Status: BotStatusWaitPurchase}
+	bot := Bot{Status: BotStatusWaitPurchase, newStatus: make(chan BotStatus), newStopLossOrderId: make(chan int64)}
 
-	// инициализация действия
+	// инициализация канала для получения действия индикаторов
 	action := make(chan IndicatorsStatus)
 
 	// запуск отслеживания индикаторами необходимого действия
@@ -27,131 +27,190 @@ func DirectionTracking(direction Direction, client *bnc.API, waitGroupDirectionT
 
 	// определение необходимого действия
 	for {
-		switch <-action {
-		case IndicatorsStatusBuy:
+		select {
+		// инициализация канала для получения нового статуса бота
+		case newBotStatus := <-bot.newStatus:
 			{
-				if bot.Status == BotStatusWaitPurchase {
-					bot.Status = BotStatusActivePurchase
+				bot.Status = newBotStatus
+			}
+		// получение нового идентификатора STOP-LOSS ордера
+		case newStopLossId := <-bot.newStopLossOrderId:
+			{
+				bot.StopLossOrderId = newStopLossId
+			}
+		// получение действия индикаторов
+		case actionIndicators := <-action:
+			{
+				switch actionIndicators {
+				case IndicatorsStatusBuy:
+					{
+						if bot.Status == BotStatusWaitPurchase {
+							bot.Status = BotStatusActivePurchase
 
-					balance, err := client.GetBalanceFree(direction.Quote)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-					currentPrice, err := client.GetCurrentPrice(direction.Base + direction.Quote)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-					buyOrder, err := client.CreateLimitBuyOrder(direction.Base+direction.Quote,
-						balance/currentPrice*(direction.PercentOfBudgetPerTransaction/100),
-						currentPrice+currentPrice*0.0005)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
+							balance, err := client.GetBalanceFree(direction.Quote)
+							if err != nil {
+								log.Println(err)
+								bot.Status = BotStatusWaitPurchase
+								continue
+							}
+							currentPrice, err := client.GetCurrentPrice(direction.Base + direction.Quote)
+							if err != nil {
+								log.Println(err)
+								bot.Status = BotStatusWaitPurchase
+								continue
+							}
+							buyOrder, err := client.CreateLimitBuyOrder(direction.Base+direction.Quote,
+								balance/currentPrice*(direction.PercentOfBudgetPerTransaction/100),
+								currentPrice+currentPrice*0.0005)
+							if err != nil {
+								log.Println(err)
+								bot.Status = BotStatusWaitPurchase
+								continue
+							}
 
-					finalBuyOrder := getFinalOrder(buyOrder.Symbol, buyOrder.OrderID, client)
+							finalBuyOrder := getFinalOrder(buyOrder.Symbol, buyOrder.OrderID, client)
 
-					if OrderStatus(finalBuyOrder.Status) == OrderStatusFilled {
-						// установка STOP-LOSS ордера
-						quantity, _ := strconv.ParseFloat(finalBuyOrder.OrigQuantity, 64)
-						price, _ := strconv.ParseFloat(finalBuyOrder.Price, 64)
+							if OrderStatus(finalBuyOrder.Status) == OrderStatusFilled {
+								// установка STOP-LOSS ордера
+								quantity, err := strconv.ParseFloat(finalBuyOrder.OrigQuantity, 64)
+								if err != nil {
+									log.Println(err)
+									bot.Status = BotStatusWaitPurchase
+									continue
+								}
+								price, err := strconv.ParseFloat(finalBuyOrder.Price, 64)
+								if err != nil {
+									log.Println(err)
+									bot.Status = BotStatusWaitPurchase
+									continue
+								}
 
-						stopLossOrder, err := client.CreateStopLimitSellOrder(finalBuyOrder.Symbol, quantity,
-							price-price*0.003, price-price*0.0031)
-						if err != nil {
-							log.Println(err)
-							continue
+								stopLossOrder, err := client.CreateStopLimitSellOrder(finalBuyOrder.Symbol, quantity,
+									price-price*0.003, price-price*0.0035)
+								if err != nil {
+									log.Println(err)
+									bot.Status = BotStatusWaitPurchase
+									continue
+								}
+
+								log.Println("Создан ордер", finalBuyOrder.OrderID, "на покупку с направлением",
+									finalBuyOrder.Symbol, "периодом", direction.Interval, "по цене",
+									finalBuyOrder.Price, "и количеством", finalBuyOrder.OrigQuantity)
+
+								bot.BuyOrderId = buyOrder.OrderID
+								bot.StopLossOrderId = stopLossOrder.OrderID
+								bot.Status = BotStatusWaitSell
+
+								go trackStopLossOrder(stopLossOrder.Symbol, &bot.StopLossOrderId, &bot.Status,
+									bot.newStatus, bot.newStopLossOrderId, client)
+
+								continue
+							} else if OrderStatus(finalBuyOrder.Status) == OrderStatusExpired {
+								bot.Status = BotStatusWaitPurchase
+								continue
+							}
 						}
+					}
+				case IndicatorsStatusSell:
+					{
+						if bot.Status == BotStatusWaitSell {
+							bot.Status = BotStatusActiveSell
 
-						go trackStopLossOrder(stopLossOrder.Symbol, stopLossOrder.OrderID, &bot.Status, client)
+							// отмена текущего STOP-LOSS ордера
+							_, err := client.CancelOrder(direction.Base+direction.Quote, bot.StopLossOrderId)
+							if err != nil {
+								log.Println(err)
+								bot.Status = BotStatusWaitSell
+								continue
+							}
 
-						log.Println("Создан ордер", buyOrder.OrderID, "на покупку с направлением",
-							buyOrder.Symbol, "периодом", direction.Interval, "по цене",
-							buyOrder.Price, "и количеством", buyOrder.OrigQuantity)
+							// получение параметров ордера на покупку
+							buyOrder, err := client.GetOrder(direction.Base+direction.Quote, bot.BuyOrderId)
+							if err != nil {
+								log.Println(err)
+								bot.Status = BotStatusWaitSell
+								continue
+							}
 
-						bot.BuyOrderId = buyOrder.OrderID
-						bot.StopLossOrderId = stopLossOrder.OrderID
-						bot.Status = BotStatusWaitSell
+							purchasePrice, err := strconv.ParseFloat(buyOrder.Price, 64)
+							if err != nil {
+								log.Println(err)
+								bot.Status = BotStatusWaitSell
+								continue
+							}
 
-						continue
-					} else if OrderStatus(finalBuyOrder.Status) == OrderStatusExpired {
-						bot.Status = BotStatusWaitPurchase
-						continue
+							// создание ордера на продажу
+							currentPrice, err := client.GetCurrentPrice(direction.Base + direction.Quote)
+							if err != nil {
+								log.Println(err)
+								bot.Status = BotStatusWaitSell
+								continue
+							}
+							quantity, err := strconv.ParseFloat(buyOrder.ExecutedQuantity, 64)
+							if err != nil {
+								log.Println(err)
+								bot.Status = BotStatusWaitSell
+								continue
+							}
+
+							sellOrder, err := client.CreateLimitSellOrder(buyOrder.Symbol, quantity,
+								currentPrice)
+							if err != nil {
+								log.Println(err)
+								bot.Status = BotStatusWaitSell
+								continue
+							}
+
+							finalSellOrder := getFinalOrder(sellOrder.Symbol, sellOrder.OrderID, client)
+
+							if OrderStatus(finalSellOrder.Status) == OrderStatusFilled {
+								log.Println("Создан ордер", finalSellOrder.OrderID, "на продажу с направлением",
+									finalSellOrder.Symbol, "периодом", direction.Interval, "по цене",
+									finalSellOrder.Price, "и количеством", finalSellOrder.OrigQuantity,
+									"выгода составит", currentPrice*quantity-purchasePrice*quantity, direction.Quote)
+
+								bot.Status = BotStatusWaitPurchase
+								continue
+							} else if OrderStatus(finalSellOrder.Status) == OrderStatusExpired {
+								// повторная установка STOP-LOSS ордера
+								quantity, err := strconv.ParseFloat(buyOrder.OrigQuantity, 64)
+								if err != nil {
+									log.Println(err)
+									bot.Status = BotStatusWaitSell
+									continue
+								}
+								price, err := strconv.ParseFloat(buyOrder.Price, 64)
+								if err != nil {
+									log.Println(err)
+									bot.Status = BotStatusWaitSell
+									continue
+								}
+
+								stopLossOrder, err := client.CreateStopLimitSellOrder(finalSellOrder.Symbol, quantity,
+									price-price*0.003, price-price*0.0035)
+								if err != nil {
+									log.Println(err)
+									bot.Status = BotStatusWaitSell
+									continue
+								}
+
+								bot.StopLossOrderId = stopLossOrder.OrderID
+								bot.Status = BotStatusWaitSell
+
+								go trackStopLossOrder(stopLossOrder.Symbol, &stopLossOrder.OrderID, &bot.Status,
+									bot.newStatus, bot.newStopLossOrderId, client)
+
+								continue
+							}
+
+						}
 					}
 				}
 			}
-		case IndicatorsStatusSell:
+		default:
 			{
-				if bot.Status == BotStatusWaitSell {
-					bot.Status = BotStatusActiveSell
-
-					// отмена текущего STOP-LOSS ордера
-					_, err := client.CancelOrder(direction.Base+direction.Quote, bot.StopLossOrderId)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-
-					// получение параметров ордера на покупку
-					buyOrder, err := client.GetOrder(direction.Base+direction.Quote, bot.BuyOrderId)
-
-					purchasePrice, err := strconv.ParseFloat(buyOrder.Price, 64)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-
-					// создание ордера на продажу
-					currentPrice, err := client.GetCurrentPrice(direction.Base + direction.Quote)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-					quantity, err := strconv.ParseFloat(buyOrder.ExecutedQuantity, 64)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-
-					sellOrder, err := client.CreateLimitSellOrder(buyOrder.Symbol, quantity,
-						currentPrice)
-					if err != nil {
-						log.Println(err)
-						continue
-					}
-
-					finalSellOrder := getFinalOrder(sellOrder.Symbol, sellOrder.OrderID, client)
-
-					if OrderStatus(finalSellOrder.Status) == OrderStatusFilled {
-						log.Println("Создан ордер", finalSellOrder.OrderID, "на продажу с направлением",
-							finalSellOrder.Symbol, "периодом", direction.Interval, "по цене",
-							finalSellOrder.Price, "и количеством", finalSellOrder.OrigQuantity,
-							"выгода составит", currentPrice*quantity-purchasePrice*quantity, direction.Quote)
-
-						bot.Status = BotStatusWaitPurchase
-						continue
-					} else if OrderStatus(finalSellOrder.Status) == OrderStatusExpired {
-						// повторная установка STOP-LOSS ордера
-						quantity, _ := strconv.ParseFloat(buyOrder.OrigQuantity, 64)
-						price, _ := strconv.ParseFloat(buyOrder.Price, 64)
-
-						stopLossOrder, err := client.CreateStopLimitSellOrder(finalSellOrder.Symbol, quantity,
-							price-price*0.0045, price-price*0.005)
-						if err != nil {
-							log.Println(err)
-							continue
-						}
-
-						bot.Status = BotStatusWaitSell
-						go trackStopLossOrder(stopLossOrder.Symbol, stopLossOrder.OrderID, &bot.Status, client)
-						continue
-					}
-
-				}
+				time.Sleep(time.Second / 10)
 			}
 		}
-		time.Sleep(time.Second / 10)
 	}
 }

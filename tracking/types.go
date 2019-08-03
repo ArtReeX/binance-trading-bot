@@ -16,9 +16,11 @@ type Direction struct {
 }
 
 type Bot struct {
-	BuyOrderId      int64
-	StopLossOrderId int64
-	SellOrderId     int64
+	BuyOrderId         int64
+	StopLossOrderId    int64
+	newStopLossOrderId chan int64
+	SellOrderId        int64
 
-	Status BotStatus
+	Status    BotStatus
+	newStatus chan BotStatus
 }
