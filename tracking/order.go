@@ -16,7 +16,7 @@ func getFinalOrder(pair string, id int64, client *bnc.API) *binance.Order {
 			log.Println(err)
 			continue
 		}
-		if OrderStatus(order.Status) != OrderStatusNew {
+		if OrderStatus(order.Status) != OrderStatusNew && OrderStatus(order.Status) != OrderStatusPartiallyFilled {
 			return order
 		}
 		time.Sleep(time.Second / 5)
@@ -66,7 +66,9 @@ func trackStopLossOrder(pair string, id *int64, status *BotStatus, newStatus cha
 			newId <- createdOrder.OrderID
 		} else if OrderStatus(order.Status) == OrderStatusFilled {
 			// если STOP-LOSS ордер сработал переводим бота в режим покупки
-			log.Println("Сработал STOP-LOSS ордер", order.OrderID)
+			log.Println("Сработал STOP-LOSS ордер", order.OrderID, "с направлением", order.Symbol, "по цене",
+				order.Price, "и количеством", order.OrigQuantity)
+
 			newStatus <- BotStatusWaitPurchase
 			return
 		} else if OrderStatus(order.Status) == OrderStatusCanceled && *status == BotStatusWaitPurchase {

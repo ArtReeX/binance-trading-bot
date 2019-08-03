@@ -3,6 +3,7 @@ package tracking
 import (
 	bnc "../binance"
 	"github.com/markcheno/go-talib"
+	geo "github.com/paulmach/go.geo"
 	"log"
 )
 
@@ -22,43 +23,21 @@ func trackIndicators(pair string, interval Interval, client *bnc.API, action cha
 			log.Println(err)
 			continue
 		}
-		highPrices, err := client.ConvertCandleHistory(candleHistory, bnc.High)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-		lowPrices, err := client.ConvertCandleHistory(candleHistory, bnc.Low)
-		if err != nil {
-			log.Println(err)
-			continue
-		}
 
 		// получение статуса индикаторов
-		rsi := talib.Rsi(closePrices, 14)
-		cci := talib.Cci(highPrices, lowPrices, closePrices, 14)
-		williamsR := talib.WillR(highPrices, lowPrices, closePrices, 14)
-		_, _, histMACD := talib.Macd(closePrices, 12, 26, 9)
+		kShortStochRsi, dLongStochRsi := talib.StochRsi(closePrices, 14, 9, 3, 3)
 
-		// покупка: RSI > 50; CCI > 0; Williams %R > -20; histogramMACD > 0
-		// продажа: RSI < 50; CCI < 0; Williams %R < -80; histogramMACD < 0
-		if rsi[len(rsi)-2] > 50 &&
-			cci[len(cci)-2] > 0 &&
-			williamsR[len(williamsR)-2] > -20 &&
-			histMACD[len(histMACD)-2] > 0 &&
-			(rsi[len(rsi)-3] <= 50 ||
-				cci[len(cci)-3] <= 0 ||
-				williamsR[len(williamsR)-3] <= -20 ||
-				histMACD[len(histMACD)-3] <= 0) {
-			action <- IndicatorsStatusBuy
-		} else if rsi[len(rsi)-2] < 50 &&
-			cci[len(cci)-2] < 0 &&
-			williamsR[len(williamsR)-2] < -80 &&
-			histMACD[len(histMACD)-2] < 0 &&
-			(rsi[len(rsi)-3] >= 50 ||
-				cci[len(cci)-3] >= 0 ||
-				williamsR[len(williamsR)-3] >= -80 ||
-				histMACD[len(histMACD)-3] >= 0) {
-			action <- IndicatorsStatusSell
+		firstLineStochRsi := geo.NewLine(geo.NewPoint(0, kShortStochRsi[len(kShortStochRsi)-2]),
+			geo.NewPoint(1, kShortStochRsi[len(kShortStochRsi)-1]))
+		secondLineStochRsi := geo.NewLine(geo.NewPoint(0, dLongStochRsi[len(dLongStochRsi)-2]),
+			geo.NewPoint(1, dLongStochRsi[len(dLongStochRsi)-1]))
+
+		if firstLineStochRsi.Intersects(secondLineStochRsi) {
+			if firstLineStochRsi.Intersection(secondLineStochRsi).Y() < 20 {
+				action <- IndicatorsStatusBuy
+			} else if firstLineStochRsi.Intersection(secondLineStochRsi).Y() > 80 {
+				action <- IndicatorsStatusSell
+			}
 		}
 
 		action <- IndicatorsStatusNeutral

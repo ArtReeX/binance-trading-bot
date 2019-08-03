@@ -121,7 +121,7 @@ func (api *API) CreateLimitSellOrder(
 		Type(binance.OrderTypeLimit).
 		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		Price(strconv.FormatFloat(price, 'f', 2, 64)).
-		TimeInForce(binance.TimeInForceGTC).
+		TimeInForce(binance.TimeInForceFOK).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
@@ -141,7 +141,7 @@ func (api *API) CreateLimitBuyOrder(
 		Type(binance.OrderTypeLimit).
 		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		Price(strconv.FormatFloat(price, 'f', 2, 64)).
-		TimeInForce(binance.TimeInForceIOC).
+		TimeInForce(binance.TimeInForceFOK).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
