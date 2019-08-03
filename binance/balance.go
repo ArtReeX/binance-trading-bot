@@ -20,12 +20,12 @@ func (api *API) GetBalances() ([]binance.Balance, error) {
 	for _, value := range res.Balances {
 		free, err := strconv.ParseFloat(value.Free, 64)
 		if err != nil {
-			return nil, errors.New("Не удалось преобразовать строку свободного баланса в дробь")
+			return nil, errors.New("не удалось преобразовать строку свободного баланса в дробь")
 		}
 
 		locked, err := strconv.ParseFloat(value.Locked, 64)
 		if err != nil {
-			return nil, errors.New("Не удалось преобразовать строку заблокированного баланса в дробь")
+			return nil, errors.New("не удалось преобразовать строку заблокированного баланса в дробь")
 		}
 
 		if free+locked > 0 {
@@ -46,7 +46,7 @@ func (api *API) GetBalanceFree(symbol string) (float64, error) {
 		if balance.Asset == symbol {
 			free, err := strconv.ParseFloat(balance.Free, 64)
 			if err != nil {
-				return 0, errors.New("Не удалось преобразовать строку свободного баланса в дробь")
+				return 0, errors.New("не удалось преобразовать строку свободного баланса в дробь")
 			}
 			return free, nil
 		}
@@ -66,7 +66,7 @@ func (api *API) GetBalanceLocked(symbol string) (float64, error) {
 		if balance.Asset == symbol {
 			locked, err := strconv.ParseFloat(balance.Locked, 64)
 			if err != nil {
-				return 0, errors.New("Не удалось преобразовать строку заблокированного баланса в дробь")
+				return 0, errors.New("не удалось преобразовать строку заблокированного баланса в дробь")
 			}
 			return locked, nil
 		}
