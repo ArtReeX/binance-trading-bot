@@ -3,40 +3,42 @@ package binance
 import (
 	"context"
 	"errors"
+	"log"
 	"strconv"
 
 	"github.com/adshao/go-binance"
 )
 
-// GetOpenOrders - функция получения списка открытых ордеров
-func (api *API) GetOpenOrders(pair string) ([]*binance.Order, error) {
+func (api *API) GetOpenOrders(pair string) ([]Order, error) {
 	openOrders, err := api.client.NewListOpenOrdersService().Symbol(pair).Do(context.Background())
 	if err != nil {
 		return nil, errors.New("не удалось получить открытые ордера: " + err.Error())
 	}
-	return openOrders, nil
-}
 
-// GetOrder - функция получения ордера
-func (api *API) GetOrder(pair string, id int64) (*binance.Order, error) {
-	order, err := api.client.NewGetOrderService().Symbol(pair).OrderID(id).Do(context.Background())
-	if err != nil {
-		return nil, errors.New("не удалось получить ордер: " + err.Error())
+	formattedOpenOrders := make([]Order, len(openOrders))
+	for index, order := range openOrders {
+		formattedOpenOrders[index] = formatOrder(*order)
 	}
-	return order, nil
+	return formattedOpenOrders, nil
 }
 
-// CancelOrder - функция отмены ордера
-func (api *API) CancelOrder(pair string, id int64) (*binance.CancelOrderResponse, error) {
-	order, err := api.client.NewCancelOrderService().Symbol(pair).OrderID(id).Do(context.Background())
+func (api *API) GetOrder(pair string, id uint64) (Order, error) {
+	order, err := api.client.NewGetOrderService().Symbol(pair).OrderID(int64(id)).Do(context.Background())
 	if err != nil {
-		return nil, errors.New("не удалось отменить ордер: " + err.Error())
+		return Order{}, errors.New("не удалось получить ордер: " + err.Error())
 	}
-	return order, nil
+	return formatOrder(*order), nil
 }
 
-// CreateMarketSellOrder - функция создания MARKET ордера на продажу
-func (api *API) CreateMarketSellOrder(pair string, quantity float64) (*binance.CreateOrderResponse, error) {
+func (api *API) CancelOrder(pair string, id uint64) error {
+	_, err := api.client.NewCancelOrderService().Symbol(pair).OrderID(int64(id)).Do(context.Background())
+	if err != nil {
+		return errors.New("не удалось отменить ордер: " + err.Error())
+	}
+	return nil
+}
+
+func (api *API) CreateMarketSellOrder(pair string, quantity float64) (uint64, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeSell).
@@ -46,13 +48,12 @@ func (api *API) CreateMarketSellOrder(pair string, quantity float64) (*binance.C
 		Do(context.Background())
 
 	if err != nil {
-		return nil, errors.New("не удалось создать MARKET ордер на продажу: " + err.Error())
+		return 0, errors.New("не удалось создать MARKET ордер на продажу: " + err.Error())
 	}
-	return order, nil
+	return uint64(order.OrderID), nil
 }
 
-// CreateMarketBuyOrder - функция создания MARKET ордера на покупку
-func (api *API) CreateMarketBuyOrder(pair string, quantity float64) (*binance.CreateOrderResponse, error) {
+func (api *API) CreateMarketBuyOrder(pair string, quantity float64) (uint64, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeBuy).
@@ -62,16 +63,13 @@ func (api *API) CreateMarketBuyOrder(pair string, quantity float64) (*binance.Cr
 		Do(context.Background())
 
 	if err != nil {
-		return nil, errors.New("не удалось создать MARKET ордер на покупку: " + err.Error())
+		return 0, errors.New("не удалось создать MARKET ордер на покупку: " + err.Error())
 	}
-	return order, nil
+	return uint64(order.OrderID), nil
 }
 
-// CreateStopLimitSellOrder - функция создания STOP-LIMIT ордера на продажу
-func (api *API) CreateStopLimitSellOrder(pair string,
-	quantity float64,
-	price float64,
-	stopPrice float64) (*binance.CreateOrderResponse, error) {
+func (api *API) CreateStopLimitSellOrder(pair string, quantity float64, price float64,
+	stopPrice float64) (uint64, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeSell).
@@ -83,17 +81,13 @@ func (api *API) CreateStopLimitSellOrder(pair string,
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
-		return nil, errors.New("не удалось создать STOP-LIMIT ордер на продажу: " + err.Error())
+		return 0, errors.New("не удалось создать STOP-LIMIT ордер на продажу: " + err.Error())
 	}
-	return order, nil
+	return uint64(order.OrderID), nil
 }
 
-// CreateStopLimitBuyOrder - функция создания STOP-LIMIT ордера на покупку
-func (api *API) CreateStopLimitBuyOrder(
-	pair string,
-	quantity float64,
-	price float64,
-	stopPrice float64) (*binance.CreateOrderResponse, error) {
+func (api *API) CreateStopLimitBuyOrder(pair string, quantity float64, price float64,
+	stopPrice float64) (uint64, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeBuy).
@@ -105,16 +99,12 @@ func (api *API) CreateStopLimitBuyOrder(
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
-		return nil, errors.New("не удалось создать STOP-LIMIT ордер на покупку: " + err.Error())
+		return 0, errors.New("не удалось создать STOP-LIMIT ордер на покупку: " + err.Error())
 	}
-	return order, nil
+	return uint64(order.OrderID), nil
 }
 
-// CreateLimitSellOrder - функция создания LIMIT ордера на продажу
-func (api *API) CreateLimitSellOrder(
-	pair string,
-	quantity float64,
-	price float64) (*binance.CreateOrderResponse, error) {
+func (api *API) CreateLimitSellOrder(pair string, quantity float64, price float64) (uint64, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeSell).
@@ -125,16 +115,12 @@ func (api *API) CreateLimitSellOrder(
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
-		return nil, errors.New("не удалось создать LIMIT ордер на продажу: " + err.Error())
+		return 0, errors.New("не удалось создать LIMIT ордер на продажу: " + err.Error())
 	}
-	return order, nil
+	return uint64(order.OrderID), nil
 }
 
-// CreateLimitBuyOrder - функция создания LIMIT ордера на продажу
-func (api *API) CreateLimitBuyOrder(
-	pair string,
-	quantity float64,
-	price float64) (*binance.CreateOrderResponse, error) {
+func (api *API) CreateLimitBuyOrder(pair string, quantity float64, price float64) (uint64, error) {
 	order, err := api.client.NewCreateOrderService().
 		Symbol(pair).
 		Side(binance.SideTypeBuy).
@@ -145,7 +131,20 @@ func (api *API) CreateLimitBuyOrder(
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
-		return nil, errors.New("не удалось создать LIMIT ордер на покупку: " + err.Error())
+		return 0, errors.New("не удалось создать LIMIT ордер на покупку: " + err.Error())
 	}
-	return order, nil
+	return uint64(order.OrderID), nil
+}
+
+func (api *API) GetFinalOrder(pair string, id uint64) (Order, error) {
+	for {
+		order, err := api.GetOrder(pair, id)
+		if err != nil {
+			log.Println("не удалось получить конечный статус ордера:" + err.Error())
+			continue
+		}
+		if !order.IsWorking {
+			return order, nil
+		}
+	}
 }

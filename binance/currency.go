@@ -6,7 +6,6 @@ import (
 	"strconv"
 )
 
-// GetCurrentPrice - функция получения текущей цены валюты
 func (api *API) GetCurrentPrice(pair string) (float64, error) {
 	stat, err := api.client.NewListPricesService().Symbol(pair).Do(context.Background())
 	if err != nil {

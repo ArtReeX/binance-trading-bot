@@ -1,27 +1,16 @@
 package tracking
 
 import (
-	bnc "../binance"
 	"github.com/markcheno/go-talib"
 	geo "github.com/paulmach/go.geo"
-	"log"
 )
 
-// trackIndicators - мониторинг индикаторов
-func trackIndicators(pair string, interval Interval, client *bnc.API, action chan<- IndicatorsStatus) {
+func getIndicatorStatuses(candles []Candle) IndicatorsStatus {
 	for {
-		// получение истории свечей по направлению
-		candleHistory, err := client.GetCandleHistory(pair, string(interval))
-		if err != nil {
-			log.Println(err)
-			continue
-		}
-
-		// преобразование данных
-		closePrices, err := client.ConvertCandleHistory(candleHistory, bnc.Close)
-		if err != nil {
-			log.Println(err)
-			continue
+		// преобразование свечей
+		closePrices := make([]float64, len(candles))
+		for index, candle := range candles {
+			closePrices[index] = candle.Close
 		}
 
 		// получение статуса индикаторов
@@ -36,14 +25,14 @@ func trackIndicators(pair string, interval Interval, client *bnc.API, action cha
 			if firstLineStochRsi.Intersection(secondLineStochRsi).Y() < 20 &&
 				kShortSchRsi[len(kShortSchRsi)-3] < kShortSchRsi[len(kShortSchRsi)-2] &&
 				dLongSchRsi[len(dLongSchRsi)-3] < dLongSchRsi[len(dLongSchRsi)-2] {
-				action <- IndicatorsStatusBuy
+				return IndicatorsStatusBuy
 			} else if firstLineStochRsi.Intersection(secondLineStochRsi).Y() > 80 &&
 				kShortSchRsi[len(kShortSchRsi)-3] > kShortSchRsi[len(kShortSchRsi)-2] &&
 				dLongSchRsi[len(dLongSchRsi)-3] > dLongSchRsi[len(dLongSchRsi)-2] {
-				action <- IndicatorsStatusSell
+				return IndicatorsStatusSell
 			}
 		}
 
-		action <- IndicatorsStatusNeutral
+		return IndicatorsStatusNeutral
 	}
 }

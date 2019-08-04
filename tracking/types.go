@@ -1,26 +1,35 @@
 package tracking
 
-type Interval string
+import "sync"
 
 type IndicatorsStatus int8
 
 type BotStatus uint8
 
-type OrderStatus string
-
 type Direction struct {
 	Base                   string
 	Quote                  string
-	Interval               Interval
+	Interval               string
 	PriceForOneTransaction float64
 }
 
 type Bot struct {
-	BuyOrderId         int64
-	StopLossOrderId    int64
-	newStopLossOrderId chan int64
-	SellOrderId        int64
+	BuyOrderId           uint64
+	SellOrderId          uint64
+	StopLossOrderId      uint64
+	StopLossOrderIdMutex sync.Mutex
 
-	Status    BotStatus
-	newStatus chan BotStatus
+	Status      BotStatus
+	StatusMutex sync.Mutex
+}
+
+type Candle struct {
+	Open                     float64
+	High                     float64
+	Low                      float64
+	Close                    float64
+	Volume                   float64
+	QuoteAssetVolume         float64
+	TakerBuyBaseAssetVolume  float64
+	TakerBuyQuoteAssetVolume float64
 }

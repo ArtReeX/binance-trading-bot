@@ -5,7 +5,6 @@ import (
 	"errors"
 )
 
-// GetServerTime - функция получения времени сервера
 func (api *API) GetServerTime() (int64, error) {
 	time, err := api.client.NewServerTimeService().Do(context.Background())
 	if err != nil {

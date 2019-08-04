@@ -1,7 +1,6 @@
 package main
 
 import (
-	"./tracking"
 	"encoding/json"
 	"errors"
 	"io/ioutil"
@@ -19,10 +18,10 @@ type API struct {
 }
 
 type Direction struct {
-	Base                   string              `json:"base"`
-	Quote                  string              `json:"quote"`
-	Intervals              []tracking.Interval `json:"intervals"`
-	PriceForOneTransaction float64             `json:"priceForOneTransaction"`
+	Base                   string  `json:"base"`
+	Quote                  string  `json:"quote"`
+	Intervals              string  `json:"intervals"`
+	PriceForOneTransaction float64 `json:"priceForOneTransaction"`
 }
 
 type Config struct {
