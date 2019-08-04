@@ -24,7 +24,7 @@ const (
 func (api *API) GetCandleHistory(symbol string, interval string) ([]*binance.Kline, error) {
 	priceHistory, err := api.client.NewKlinesService().Symbol(symbol).Interval(interval).Do(context.Background())
 	if err != nil {
-		return nil, errors.New("Не удалось получить историю валюты: " + err.Error())
+		return nil, errors.New("не удалось получить историю валюты: " + err.Error())
 	}
 
 	return priceHistory, nil
@@ -39,7 +39,7 @@ func (api *API) ConvertCandleHistory(history []*binance.Kline, typeOfReceiving T
 			for index, candle := range history {
 				highPrice, err := strconv.ParseFloat(candle.High, 64)
 				if err != nil {
-					return nil, errors.New("Невозможно преобразовать строку максимальной цены свечи в дробь")
+					return nil, errors.New("невозможно преобразовать строку максимальной цены свечи в дробь")
 				}
 				highPrices[index] = highPrice
 			}
@@ -51,7 +51,7 @@ func (api *API) ConvertCandleHistory(history []*binance.Kline, typeOfReceiving T
 			for index, candle := range history {
 				lowPrice, err := strconv.ParseFloat(candle.Low, 64)
 				if err != nil {
-					return nil, errors.New("Невозможно преобразовать строку минимальной цены свечи в дробь")
+					return nil, errors.New("невозможно преобразовать строку минимальной цены свечи в дробь")
 				}
 				lowPrices[index] = lowPrice
 			}
@@ -63,7 +63,7 @@ func (api *API) ConvertCandleHistory(history []*binance.Kline, typeOfReceiving T
 			for index, candle := range history {
 				closePrice, err := strconv.ParseFloat(candle.Close, 64)
 				if err != nil {
-					return nil, errors.New("Невозможно преобразовать строку цены закрытия свечи в дробь")
+					return nil, errors.New("невозможно преобразовать строку цены закрытия свечи в дробь")
 				}
 				closePrices[index] = closePrice
 			}

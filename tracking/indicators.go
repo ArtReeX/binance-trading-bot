@@ -25,17 +25,21 @@ func trackIndicators(pair string, interval Interval, client *bnc.API, action cha
 		}
 
 		// получение статуса индикаторов
-		kShortStochRsi, dLongStochRsi := talib.StochRsi(closePrices, 14, 9, 3, 3)
+		kShortSchRsi, dLongSchRsi := talib.StochRsi(closePrices, 14, 9, 3, 3)
 
-		firstLineStochRsi := geo.NewLine(geo.NewPoint(0, kShortStochRsi[len(kShortStochRsi)-2]),
-			geo.NewPoint(1, kShortStochRsi[len(kShortStochRsi)-1]))
-		secondLineStochRsi := geo.NewLine(geo.NewPoint(0, dLongStochRsi[len(dLongStochRsi)-2]),
-			geo.NewPoint(1, dLongStochRsi[len(dLongStochRsi)-1]))
+		firstLineStochRsi := geo.NewLine(geo.NewPoint(0, kShortSchRsi[len(kShortSchRsi)-3]),
+			geo.NewPoint(1, kShortSchRsi[len(kShortSchRsi)-2]))
+		secondLineStochRsi := geo.NewLine(geo.NewPoint(0, dLongSchRsi[len(dLongSchRsi)-3]),
+			geo.NewPoint(1, dLongSchRsi[len(dLongSchRsi)-2]))
 
 		if firstLineStochRsi.Intersects(secondLineStochRsi) {
-			if firstLineStochRsi.Intersection(secondLineStochRsi).Y() < 20 {
+			if firstLineStochRsi.Intersection(secondLineStochRsi).Y() < 20 &&
+				kShortSchRsi[len(kShortSchRsi)-3] < kShortSchRsi[len(kShortSchRsi)-2] &&
+				dLongSchRsi[len(dLongSchRsi)-3] < dLongSchRsi[len(dLongSchRsi)-2] {
 				action <- IndicatorsStatusBuy
-			} else if firstLineStochRsi.Intersection(secondLineStochRsi).Y() > 80 {
+			} else if firstLineStochRsi.Intersection(secondLineStochRsi).Y() > 80 &&
+				kShortSchRsi[len(kShortSchRsi)-3] > kShortSchRsi[len(kShortSchRsi)-2] &&
+				dLongSchRsi[len(dLongSchRsi)-3] > dLongSchRsi[len(dLongSchRsi)-2] {
 				action <- IndicatorsStatusSell
 			}
 		}

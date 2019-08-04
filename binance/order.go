@@ -12,7 +12,7 @@ import (
 func (api *API) GetOpenOrders(pair string) ([]*binance.Order, error) {
 	openOrders, err := api.client.NewListOpenOrdersService().Symbol(pair).Do(context.Background())
 	if err != nil {
-		return nil, errors.New("Не удалось получить открытые ордера: " + err.Error())
+		return nil, errors.New("не удалось получить открытые ордера: " + err.Error())
 	}
 	return openOrders, nil
 }
@@ -21,7 +21,7 @@ func (api *API) GetOpenOrders(pair string) ([]*binance.Order, error) {
 func (api *API) GetOrder(pair string, id int64) (*binance.Order, error) {
 	order, err := api.client.NewGetOrderService().Symbol(pair).OrderID(id).Do(context.Background())
 	if err != nil {
-		return nil, errors.New("Не удалось получить ордер: " + err.Error())
+		return nil, errors.New("не удалось получить ордер: " + err.Error())
 	}
 	return order, nil
 }
@@ -30,7 +30,7 @@ func (api *API) GetOrder(pair string, id int64) (*binance.Order, error) {
 func (api *API) CancelOrder(pair string, id int64) (*binance.CancelOrderResponse, error) {
 	order, err := api.client.NewCancelOrderService().Symbol(pair).OrderID(id).Do(context.Background())
 	if err != nil {
-		return nil, errors.New("Не удалось отменить ордер: " + err.Error())
+		return nil, errors.New("не удалось отменить ордер: " + err.Error())
 	}
 	return order, nil
 }
@@ -46,7 +46,7 @@ func (api *API) CreateMarketSellOrder(pair string, quantity float64) (*binance.C
 		Do(context.Background())
 
 	if err != nil {
-		return nil, errors.New("Не удалось создать MARKET ордер на продажу: " + err.Error())
+		return nil, errors.New("не удалось создать MARKET ордер на продажу: " + err.Error())
 	}
 	return order, nil
 }
@@ -62,7 +62,7 @@ func (api *API) CreateMarketBuyOrder(pair string, quantity float64) (*binance.Cr
 		Do(context.Background())
 
 	if err != nil {
-		return nil, errors.New("Не удалось создать MARKET ордер на покупку: " + err.Error())
+		return nil, errors.New("не удалось создать MARKET ордер на покупку: " + err.Error())
 	}
 	return order, nil
 }
@@ -79,11 +79,11 @@ func (api *API) CreateStopLimitSellOrder(pair string,
 		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		Price(strconv.FormatFloat(price, 'f', 2, 64)).
 		StopPrice(strconv.FormatFloat(stopPrice, 'f', 2, 64)).
-		TimeInForce(binance.TimeInForceGTC).
+		TimeInForce(binance.TimeInForceTypeGTC).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
-		return nil, errors.New("Не удалось создать STOP-LIMIT ордер на продажу: " + err.Error())
+		return nil, errors.New("не удалось создать STOP-LIMIT ордер на продажу: " + err.Error())
 	}
 	return order, nil
 }
@@ -101,11 +101,11 @@ func (api *API) CreateStopLimitBuyOrder(
 		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		Price(strconv.FormatFloat(price, 'f', 2, 64)).
 		StopPrice(strconv.FormatFloat(stopPrice, 'f', 2, 64)).
-		TimeInForce(binance.TimeInForceGTC).
+		TimeInForce(binance.TimeInForceTypeGTC).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
-		return nil, errors.New("Не удалось создать STOP-LIMIT ордер на покупку: " + err.Error())
+		return nil, errors.New("не удалось создать STOP-LIMIT ордер на покупку: " + err.Error())
 	}
 	return order, nil
 }
@@ -121,11 +121,11 @@ func (api *API) CreateLimitSellOrder(
 		Type(binance.OrderTypeLimit).
 		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		Price(strconv.FormatFloat(price, 'f', 2, 64)).
-		TimeInForce(binance.TimeInForceFOK).
+		TimeInForce(binance.TimeInForceTypeFOK).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
-		return nil, errors.New("Не удалось создать LIMIT ордер на продажу: " + err.Error())
+		return nil, errors.New("не удалось создать LIMIT ордер на продажу: " + err.Error())
 	}
 	return order, nil
 }
@@ -141,11 +141,11 @@ func (api *API) CreateLimitBuyOrder(
 		Type(binance.OrderTypeLimit).
 		Quantity(strconv.FormatFloat(quantity, 'f', 6, 64)).
 		Price(strconv.FormatFloat(price, 'f', 2, 64)).
-		TimeInForce(binance.TimeInForceFOK).
+		TimeInForce(binance.TimeInForceTypeFOK).
 		NewOrderRespType(binance.NewOrderRespTypeRESULT).
 		Do(context.Background())
 	if err != nil {
-		return nil, errors.New("Не удалось создать LIMIT ордер на покупку: " + err.Error())
+		return nil, errors.New("не удалось создать LIMIT ордер на покупку: " + err.Error())
 	}
 	return order, nil
 }
