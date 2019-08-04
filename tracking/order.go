@@ -74,48 +74,6 @@ func trackStopLossOrder(pair string, id *int64, status *BotStatus, newStatus cha
 		} else if OrderStatus(order.Status) == OrderStatusCanceled && *status == BotStatusWaitPurchase {
 			// если продажа была выполнена перестаём отслеживать
 			return
-		} else if OrderStatus(order.Status) != OrderStatusCanceled && *status == BotStatusWaitSell {
-			// передвижение STOP-LOSS ордера в точку безубытка
-			currentPrice, err := client.GetCurrentPrice(pair)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-
-			stopLossPrice, _ := strconv.ParseFloat(order.Price, 64)
-			if err != nil {
-				log.Println(err)
-				continue
-			}
-
-			if currentPrice > stopLossPrice+stopLossPrice*0.0015 {
-				quantity, _ := strconv.ParseFloat(order.OrigQuantity, 64)
-				if err != nil {
-					log.Println(err)
-					continue
-				}
-
-				// отмена текущего STOP-LOSS ордера
-				_, err := client.CancelOrder(order.Symbol, order.OrderID)
-				if err != nil {
-					log.Println(err)
-					continue
-				}
-
-				createdOrder, err := client.CreateStopLimitSellOrder(order.Symbol, quantity,
-					currentPrice-currentPrice*0.0015,
-					currentPrice-currentPrice*0.0012)
-				if err != nil {
-					log.Println(err)
-					continue
-				}
-
-				log.Println("Передвинут STOP-LOSS ордер", createdOrder.OrderID, "взамен ордера",
-					order.OrderID, "с направлением", createdOrder.Symbol, "по цене",
-					createdOrder.Price, "и количеством", createdOrder.OrigQuantity)
-
-				newId <- createdOrder.OrderID
-			}
 		}
 	}
 }

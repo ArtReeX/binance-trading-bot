@@ -1,25 +1,26 @@
-# binance-trading-bot
+# Бот для торговли на криптобирже Binance на основе нейронной сети #
 
-Бот для торговли на криптобирже Binance по индикаторам.
+### Запуск: ###
+***
+- Выполните:
 
-Перед запуском создайте файл "config.json" со следующим содержанием:
-{
-"API": {
-"Binance": {
-"key": "YOUR_KEY_BINANCE_API",
-"secret": "YOU_SECRET_BINANCE_API"
-}
-},
-"directions": [
-{
-"base": "BTC",
-"quote": "USDT",
-"intervals": ["1m", "5m", "15m"],
-"percentOfBudgetPerTransaction": 10
-}
-]
+```bash
+git clone https://github.com/ArtReeX/binance-trading-bot.git
+cd binance-trading-bot
+go build
+mkdir $HOME/.binance-trading-bot
+cp config.json $HOME/.binance-trading-bot/config.json
+open $HOME/.binance-trading-bot/config.json
+```
 
-base - базовая валюта (пример: "BTC");
-quote - валюта котировки (пример: "USDT");
-intervals - временной промежуток для анализа валюты (пример: "15m");
-percentOfBudgetPerTransaction - процент от доступной валюты на счету на одну сделку по выбранной паре (пример: 10);
+- Настройте файл конфигурации учитывая следующие параметры.
+
+  `base` - базовая валюта (пример: "BTC")
+
+  `quote` - валюта котировки (пример: "USDT")
+
+  `intervals` - временной промежуток для анализа валюты (пример: "15m")
+
+  `priceForOneTransaction` - цена на одну сделку по выбранной паре (пример: 10)
+
+- Запустите бота `binance-trading-bot`.

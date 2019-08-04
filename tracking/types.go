@@ -9,10 +9,10 @@ type BotStatus uint8
 type OrderStatus string
 
 type Direction struct {
-	Base                          string
-	Quote                         string
-	Interval                      Interval
-	PercentOfBudgetPerTransaction float64
+	Base                   string
+	Quote                  string
+	Interval               Interval
+	PriceForOneTransaction float64
 }
 
 type Bot struct {

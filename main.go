@@ -12,7 +12,7 @@ func main() {
 	log.Println("Запуск бота для торговли на Binance.")
 
 	// получение настроек
-	config, err := GetConfig("/config.json")
+	config, err := GetConfig("config.json")
 	if err != nil {
 		log.Fatalln("Невозможно загрузить файл конфигурации:", err.Error())
 	}
@@ -26,10 +26,10 @@ func main() {
 		for _, interval := range direction.Intervals {
 			waitGroupDirectionTracking.Add(1)
 			go tracking.DirectionTracking(tracking.Direction{
-				Base:                          direction.Base,
-				Quote:                         direction.Quote,
-				Interval:                      interval,
-				PercentOfBudgetPerTransaction: direction.PercentOfBudgetPerTransaction},
+				Base:                   direction.Base,
+				Quote:                  direction.Quote,
+				Interval:               interval,
+				PriceForOneTransaction: direction.PriceForOneTransaction},
 				client,
 				waitGroupDirectionTracking)
 		}
