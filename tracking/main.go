@@ -90,7 +90,7 @@ func DirectionTracking(direction Direction, client *bnc.API, waitGroupDirectionT
 								}
 
 								stopLossOrder, err := client.CreateStopLimitSellOrder(finalBuyOrder.Symbol, quantity,
-									price-price*0.0015, price-price*0.00012)
+									price-price*0.0015, price-price*0.0012)
 								if err != nil {
 									log.Println(err)
 									bot.Status = BotStatusWaitPurchase
