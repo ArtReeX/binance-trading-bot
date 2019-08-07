@@ -6,8 +6,8 @@ import (
 	"strconv"
 )
 
-func (api *API) GetCurrentPrice(pair string) (float64, error) {
-	stat, err := api.client.NewListPricesService().Symbol(pair).Do(context.Background())
+func (api *Api) GetCurrentPrice(pair string) (float64, error) {
+	stat, err := api.Client.NewListPricesService().Symbol(pair).Do(context.Background())
 	if err != nil {
 		return 0, errors.New("не удалось получить текущую цену валюты: " + err.Error())
 	}

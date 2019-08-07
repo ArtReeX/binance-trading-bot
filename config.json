@@ -2,13 +2,13 @@
   "api": {
     "binance": {
       "key": "YOUR_KEY_BINANCE_API",
-      "secret": "YOU_SECRET_BINANCE_API"
+      "secret": "YOU_SECRET_BINANCE_API",
+      "fee": 0.1
     }
   },
   "directions": [
     {
-      "base": "BTC",
-      "quote": "USDT",
+      "pair": "BTCUSDT",
       "intervals": ["1m"],
       "priceForOneTransaction": 10
     }

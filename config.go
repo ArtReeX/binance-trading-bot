@@ -8,27 +8,6 @@ import (
 	"os"
 )
 
-type Binance struct {
-	Key    string `json:"key"`
-	Secret string `json:"secret"`
-}
-
-type API struct {
-	Binance Binance `json:"binance"`
-}
-
-type Direction struct {
-	Base                   string  `json:"base"`
-	Quote                  string  `json:"quote"`
-	Intervals              string  `json:"intervals"`
-	PriceForOneTransaction float64 `json:"priceForOneTransaction"`
-}
-
-type Config struct {
-	API        API         `json:"api"`
-	Directions []Direction `json:"directions"`
-}
-
 func GetConfig(path string) (*Config, error) {
 	raw, err := ioutil.ReadFile(os.Getenv("HOME") + "/.binance-trading-bot/" + path)
 	if err != nil {

@@ -1,17 +1,20 @@
 package binance
 
 import (
+	"errors"
 	"github.com/adshao/go-binance"
 )
 
-// API - интерфейс клиента
-type API struct {
-	client *binance.Client
-}
+func NewClient(key string, secret string) (*Api, error) {
+	client := binance.NewClient(key, secret)
 
-// NewClient - функция создания нового клиента для биржи
-func NewClient(key string, secret string) *API {
-	return &API{
-		client: binance.NewClient(key, secret),
+	pairs, err := getPairs(client)
+	if err != nil {
+		return nil, errors.New("невозможно получить параметры пар для ордеров:" + err.Error())
 	}
+
+	return &Api{
+		Client: client,
+		Pairs:  pairs,
+	}, nil
 }
