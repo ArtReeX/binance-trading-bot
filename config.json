@@ -1,5 +1,5 @@
 {
-  "api": {
+  "API": {
     "binance": {
       "key": "YOUR_KEY_BINANCE_API",
       "secret": "YOU_SECRET_BINANCE_API",

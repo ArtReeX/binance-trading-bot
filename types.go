@@ -22,7 +22,7 @@ type (
 
 	// Config - настройки
 	Config struct {
-		API        API         `json:"api"`
+		API        API         `json:"API"`
 		Directions []Direction `json:"directions"`
 	}
 )
