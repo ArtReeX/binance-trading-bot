@@ -1,8 +1,9 @@
 package binance
 
 import (
-	"github.com/adshao/go-binance"
 	"strconv"
+
+	"github.com/adshao/go-binance"
 )
 
 func formatOrder(order binance.Order) Order {
@@ -14,7 +15,7 @@ func formatOrder(order binance.Order) Order {
 
 	return Order{
 		Symbol:                   order.Symbol,
-		OrderId:                  uint64(order.OrderID),
+		OrderID:                  uint64(order.OrderID),
 		Price:                    priceValue,
 		OrigQuantity:             origQuantityValue,
 		ExecutedQuantity:         executedQuantityValue,

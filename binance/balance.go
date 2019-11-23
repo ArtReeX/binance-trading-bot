@@ -6,7 +6,8 @@ import (
 	"strconv"
 )
 
-func (api *Api) GetBalanceFree(symbol string) (float64, error) {
+// GetBalanceFree - получение количества доступного баланса по валюте
+func (api *API) GetBalanceFree(symbol string) (float64, error) {
 	balances, err := api.Client.NewGetAccountService().Do(context.Background())
 	if err != nil {
 		return 0, errors.New("не удалось получить баланс аккаунта: " + err.Error())
@@ -25,7 +26,8 @@ func (api *Api) GetBalanceFree(symbol string) (float64, error) {
 	return 0, nil
 }
 
-func (api *Api) GetBalanceLocked(symbol string) (float64, error) {
+// GetBalanceLocked - получение количества недоступного баланса по валюте
+func (api *API) GetBalanceLocked(symbol string) (float64, error) {
 	balances, err := api.Client.NewGetAccountService().Do(context.Background())
 	if err != nil {
 		return 0, errors.New("не удалось получить баланс аккаунта: " + err.Error())
@@ -44,7 +46,8 @@ func (api *Api) GetBalanceLocked(symbol string) (float64, error) {
 	return 0, nil
 }
 
-func (api *Api) GetBalanceOverall(symbol string) (float64, error) {
+// GetBalanceOverall - получение количества суммарного баланса по валюте
+func (api *API) GetBalanceOverall(symbol string) (float64, error) {
 	balanceFree, err := api.GetBalanceFree(symbol)
 	if err != nil {
 		return 0, err

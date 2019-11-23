@@ -18,7 +18,7 @@ func main() {
 	}
 
 	// создание клиента
-	client, err := bnc.NewClient(config.Api.Binance.Key, config.Api.Binance.Secret)
+	client, err := bnc.NewClient(config.API.Binance.Key, config.API.Binance.Secret)
 	if err != nil {
 		log.Fatalln("Невозможно создать клиент: " + err.Error())
 	}
@@ -29,7 +29,7 @@ func main() {
 		for _, interval := range direction.Intervals {
 			waitGroupDirectionTracking.Add(1)
 			go tracking.DirectionTracking(direction.Pair, interval, direction.PriceForOneTransaction,
-				config.Api.Binance.Fee, client, waitGroupDirectionTracking)
+				config.API.Binance.Fee, client, waitGroupDirectionTracking)
 		}
 	}
 	waitGroupDirectionTracking.Wait()

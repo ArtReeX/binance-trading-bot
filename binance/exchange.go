@@ -3,12 +3,14 @@ package binance
 import (
 	"context"
 	"errors"
-	"github.com/adshao/go-binance"
 	"strconv"
 	"strings"
+
+	"github.com/adshao/go-binance"
 )
 
-func getPairs(client *binance.Client) (map[string]Pair, error) {
+// GetPairs - получение точности валюты
+func GetPairs(client *binance.Client) (map[string]Pair, error) {
 	info, err := client.NewExchangeInfoService().Do(context.Background())
 	if err != nil {
 		return nil, errors.New("не удалось получить точность валют" + err.Error())
@@ -26,7 +28,8 @@ func getPairs(client *binance.Client) (map[string]Pair, error) {
 	return pairs, nil
 }
 
-func (api *Api) GetDepth(pair string, limit uint8) (Depth, error) {
+// GetDepth - получение глубины стакана
+func (api *API) GetDepth(pair string, limit uint8) (Depth, error) {
 	depth, err := api.Client.NewDepthService().Symbol(pair).Limit(int(limit)).Do(context.Background())
 	if err != nil {
 		return Depth{}, errors.New("не удалось получить глубину валюты" + err.Error())

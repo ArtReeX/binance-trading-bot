@@ -7,7 +7,7 @@ import (
 )
 
 // GetCandleHistory - функция получения истории цены для валюты
-func (api *Api) GetCandleHistory(pair string, interval string) ([]Candle, error) {
+func (api *API) GetCandleHistory(pair string, interval string) ([]Candle, error) {
 	priceHistory, err := api.Client.NewKlinesService().Symbol(pair).Interval(interval).Do(context.Background())
 	if err != nil {
 		return nil, errors.New("не удалось получить историю валюты: " + err.Error())

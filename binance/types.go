@@ -3,9 +3,10 @@ package binance
 import "github.com/adshao/go-binance"
 
 type (
+	// Order - структура ордера
 	Order struct {
 		Symbol                   string
-		OrderId                  uint64
+		OrderID                  uint64
 		Price                    float64
 		OrigQuantity             float64
 		ExecutedQuantity         float64
@@ -14,13 +15,16 @@ type (
 		StopPrice                float64
 	}
 
+	// OrderStatus - статус ордера
 	OrderStatus string
 
-	Api struct {
+	// API - клиент
+	API struct {
 		Client *binance.Client
 		Pairs  map[string]Pair
 	}
 
+	// Pair - направление торговли
 	Pair struct {
 		BaseAsset        string
 		QuoteAsset       string
@@ -28,6 +32,7 @@ type (
 		PriceAccuracy    uint8
 	}
 
+	// Candle - структура свечи
 	Candle struct {
 		Open                     float64
 		High                     float64
@@ -39,16 +44,19 @@ type (
 		TakerBuyQuoteAssetVolume float64
 	}
 
+	// Depth - структура стакана
 	Depth struct {
 		Bids []Bid
 		Asks []Ask
 	}
 
+	// Bid - структура стакана на продажу
 	Bid struct {
 		Price    float64
 		Quantity float64
 	}
 
+	// Ask - структура стакана на покупку
 	Ask struct {
 		Price    float64
 		Quantity float64

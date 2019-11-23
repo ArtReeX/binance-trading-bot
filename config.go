@@ -8,6 +8,7 @@ import (
 	"os"
 )
 
+// GetConfig - получение конфигурации
 func GetConfig(path string) (*Config, error) {
 	raw, err := ioutil.ReadFile(os.Getenv("HOME") + "/.binance-trading-bot/" + path)
 	if err != nil {
